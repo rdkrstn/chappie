@@ -6,6 +6,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Tests: 81 passing](https://img.shields.io/badge/tests-81%20passing-brightgreen.svg)](#testing)
 [![Status: Day 6 of 7](https://img.shields.io/badge/status-Day%206%20of%207-blue.svg)](#build-progress)
+[![GitHub Stars](https://img.shields.io/github/stars/rdkrstn/chappie?style=social)](https://github.com/rdkrstn/chappie)
 
 LiteLLM gives you budget caps. Chappie gives you behavior detection.
 
@@ -716,7 +717,7 @@ Chappie is being built in public over 7 days.
 | **4** | CLI (`budgetctl`) + Alerts (Slack/webhook) + REST API | **Done** |
 | **5** | Docker + CI pipeline + Docs | **Done** |
 | **6** | Polish + dogfooding + final tests | **Done** |
-| 7 | Launch | Tomorrow |
+| **7** | Launch | **Done** - v0.1.0 released |
 
 ## Project Structure
 
