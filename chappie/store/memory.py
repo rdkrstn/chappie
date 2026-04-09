@@ -104,16 +104,44 @@ class MemoryStore(StoreInterface):
     ) -> Any:
         """Simulate Lua scripts used by Chappie.
 
-        The actual scripts will be wired up in Day 3.  For now we
-        provide a generic budget-reservation placeholder:
+        Supports two script patterns:
 
-        * If the script contains ``"HGET"`` (budget reservation script),
-          we check available budget >= requested cost.  On success we
-          decrement and return ``[1, new_spent, limit]``.  On failure
-          we return ``[0, current_spent, limit]``.
-        * Otherwise return a generic success ``[1]``.
+        1. **Budget reservation** (contains ``INCRBYFLOAT``):
+           KEYS[1] = spent key, KEYS[2] = reservation key
+           ARGV[1] = estimated_cost, ARGV[2] = budget_limit,
+           ARGV[3] = reservation_id, ARGV[4] = ttl
+           Atomically checks ``spent + cost <= limit``, increments
+           spent, sets reservation key with TTL.
+           Returns ``[1, new_spent, limit]`` on success or
+           ``[0, current_spent, limit]`` on failure.
+
+        2. **Legacy hash-based check** (contains ``HGET``):
+           Kept for backwards compatibility with earlier scripts.
+
+        3. **Fallback**: returns ``[1]``.
         """
-        # Budget reservation simulation
+        # Budget reservation script (Day 3 -- scalar keys)
+        if "INCRBYFLOAT" in script and len(keys) >= 2 and len(args) >= 2:
+            spent_key = keys[0]
+            reservation_key = keys[1]
+            estimated_cost = float(args[0])
+            budget_limit = float(args[1])
+            ttl = int(args[3]) if len(args) >= 4 else 120
+
+            self._check_expiry(spent_key)
+            current_spent = float(self._data.get(spent_key, "0"))
+
+            if current_spent + estimated_cost > budget_limit:
+                return [0, str(current_spent), str(budget_limit)]
+
+            new_spent = current_spent + estimated_cost
+            self._data[spent_key] = str(new_spent)
+            self._data[reservation_key] = str(estimated_cost)
+            self._set_ttl(reservation_key, ttl)
+
+            return [1, str(new_spent), str(budget_limit)]
+
+        # Legacy hash-based budget check (Day 1-2 placeholder)
         if "HGET" in script and len(keys) >= 1 and len(args) >= 1:
             budget_key = keys[0]
             requested_cost = float(args[0])

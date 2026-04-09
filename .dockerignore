@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.venv/
+.env
+.pytest_cache/
+*.egg
+.git/
+.github/
+docs/
+tests/
+examples/
+*.bat
+.dockerignore
+docker-compose.yml

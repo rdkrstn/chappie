@@ -1,1 +1,1 @@
-"""Chappie engine modules -- loop detection and circuit breaker."""
+"""Chappie engine modules -- loop detection, circuit breaker, and budget enforcement."""

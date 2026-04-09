@@ -1,0 +1,767 @@
+{
+  "generated_at": "2026-04-09T16:37:58.758246+00:00",
+  "version": "0.6.0",
+  "day": 6,
+  "modules_tested": [
+    {
+      "name": "Loop Detector",
+      "status": "pass",
+      "tests": [
+        {
+          "name": "Hash Dedup Detection",
+          "strategy": "hash_dedup",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-dedup",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-dedup",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 3,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-dedup",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 4,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-dedup",
+              "action": "BLOCKED",
+              "strategy": "hash_dedup",
+              "details": "Hash ed38ebde... seen 3 times in last 3 calls (threshold=3)"
+            },
+            {
+              "call": 5,
+              "prompt": "Tell me about Python",
+              "model": "gpt-4",
+              "agent_id": "agent-dedup",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            }
+          ],
+          "result": "1 blocked, 4 allowed",
+          "stats": {
+            "agent_id": "agent-dedup",
+            "total_calls": 4,
+            "window_size": 4,
+            "window_capacity": 10,
+            "unique_hashes": 2,
+            "current_velocity_cpm": 4.0,
+            "velocity_baseline_cpm": 2.205
+          }
+        },
+        {
+          "name": "Cycle Detection (A-B-A-B)",
+          "strategy": "cycle",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "Summarize the document",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "Translate to Spanish",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 3,
+              "prompt": "Summarize the document",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 4,
+              "prompt": "Translate to Spanish",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 5,
+              "prompt": "Summarize the document",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 6,
+              "prompt": "Translate to Spanish",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 7,
+              "prompt": "Summarize the document",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "BLOCKED",
+              "strategy": "cycle",
+              "details": "Repeating cycle of period 2 detected: ['5e51dce5', 'f4d39639']"
+            }
+          ],
+          "result": "1 blocked, 6 allowed",
+          "stats": {
+            "agent_id": "agent-cycle",
+            "total_calls": 6,
+            "window_size": 6,
+            "window_capacity": 20,
+            "unique_hashes": 2,
+            "current_velocity_cpm": 6.0,
+            "velocity_baseline_cpm": 2.4310125000000005
+          }
+        },
+        {
+          "name": "No False Positives (varied prompts)",
+          "strategy": "none",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "What is machine learning?",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "Explain neural networks",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 3,
+              "prompt": "How does backpropagation work?",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 4,
+              "prompt": "What is gradient descent?",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 5,
+              "prompt": "Tell me about transformers",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 6,
+              "prompt": "What is attention mechanism?",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 7,
+              "prompt": "Explain BERT architecture",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 8,
+              "prompt": "What is GPT?",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            }
+          ],
+          "result": "0 false positives (should be 0)",
+          "stats": {
+            "agent_id": "agent-varied",
+            "total_calls": 8,
+            "window_size": 8,
+            "window_capacity": 10,
+            "unique_hashes": 8,
+            "current_velocity_cpm": 8.0,
+            "velocity_baseline_cpm": 2.680191281250001
+          }
+        },
+        {
+          "name": "Agent Isolation",
+          "strategy": "isolation",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "What is the weather?",
+              "model": "gpt-4",
+              "agent_id": "agent-A",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "What is the weather?",
+              "model": "gpt-4",
+              "agent_id": "agent-A",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 1,
+              "prompt": "What is the weather?",
+              "model": "gpt-4",
+              "agent_id": "agent-B",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "What is the weather?",
+              "model": "gpt-4",
+              "agent_id": "agent-B",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            }
+          ],
+          "result": "PASS - agents isolated"
+        },
+        {
+          "name": "Window Size Enforcement",
+          "strategy": "window",
+          "events": [
+            {
+              "call": 8,
+              "prompt": "8 prompts recorded into window_size=5",
+              "model": "gpt-4",
+              "agent_id": "agent-window",
+              "action": "INFO",
+              "strategy": null,
+              "details": "Window holds 5 of 5 capacity"
+            }
+          ],
+          "result": "Window size: 5 (max 5)",
+          "stats": {
+            "agent_id": "agent-window",
+            "total_calls": 8,
+            "window_size": 5,
+            "window_capacity": 5,
+            "unique_hashes": 5,
+            "current_velocity_cpm": 8.0,
+            "velocity_baseline_cpm": 2.680191281250001
+          }
+        }
+      ]
+    },
+    {
+      "name": "Circuit Breaker",
+      "status": "pass",
+      "tests": [
+        {
+          "name": "Circuit Breaker Trip on Loop",
+          "strategy": "loop_trip",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-loop-trip",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-loop-trip",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 3,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-loop-trip",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 4,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-loop-trip",
+              "action": "TRIPPED",
+              "strategy": "hash_dedup",
+              "details": "Loop detected, CB tripped: Hash ed38ebde... seen 3 times in last 3 calls (threshold=3)"
+            },
+            {
+              "call": 5,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-loop-trip",
+              "action": "BLOCKED",
+              "strategy": "circuit_breaker",
+              "details": "CB OPEN: loop_detected"
+            },
+            {
+              "call": 6,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-loop-trip",
+              "action": "BLOCKED",
+              "strategy": "circuit_breaker",
+              "details": "CB OPEN: loop_detected"
+            }
+          ],
+          "result": "3 allowed, 1 tripped, 2 blocked",
+          "failed": false,
+          "stats": {
+            "total_calls": 6,
+            "allowed": 3,
+            "tripped": 1,
+            "blocked_after_trip": 2
+          }
+        },
+        {
+          "name": "Circuit Breaker Auto-Recovery",
+          "strategy": "auto_recovery",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "(manual trip)",
+              "model": "-",
+              "agent_id": "agent-recovery",
+              "action": "TRIPPED",
+              "strategy": "manual",
+              "details": "State=open"
+            },
+            {
+              "call": 2,
+              "prompt": "(probe after cooldown)",
+              "model": "-",
+              "agent_id": "agent-recovery",
+              "action": "ALLOWED",
+              "strategy": "auto_recovery",
+              "details": "State=half_open"
+            },
+            {
+              "call": 3,
+              "prompt": "(success recorded)",
+              "model": "-",
+              "agent_id": "agent-recovery",
+              "action": "RECOVERED",
+              "strategy": "auto_recovery",
+              "details": "State=closed"
+            }
+          ],
+          "result": "PASS - CB recovered to CLOSED after cooldown + success",
+          "failed": false,
+          "stats": {
+            "trip_state": "open",
+            "half_open_state": "half_open",
+            "final_state": "closed",
+            "recovered": true
+          }
+        },
+        {
+          "name": "Circuit Breaker Manual Reset",
+          "strategy": "manual_reset",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "(manual trip)",
+              "model": "-",
+              "agent_id": "agent-manual-reset",
+              "action": "TRIPPED",
+              "strategy": "manual",
+              "details": "State=open"
+            },
+            {
+              "call": 2,
+              "prompt": "(verify open)",
+              "model": "-",
+              "agent_id": "agent-manual-reset",
+              "action": "BLOCKED",
+              "strategy": "circuit_breaker",
+              "details": "State=open, reason=loop_detected"
+            },
+            {
+              "call": 3,
+              "prompt": "(manual reset)",
+              "model": "-",
+              "agent_id": "agent-manual-reset",
+              "action": "RECOVERED",
+              "strategy": "manual_reset",
+              "details": "State=closed"
+            },
+            {
+              "call": 4,
+              "prompt": "(verify allowed)",
+              "model": "-",
+              "agent_id": "agent-manual-reset",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": "State=closed"
+            }
+          ],
+          "result": "PASS - manual reset restored CLOSED state",
+          "failed": false,
+          "stats": {
+            "trip_state": "open",
+            "reset_state": "closed",
+            "reset_worked": true
+          }
+        },
+        {
+          "name": "Error Threshold Trip",
+          "strategy": "error_threshold",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "(failure #1)",
+              "model": "gpt-4",
+              "agent_id": "agent-errors",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": "Error count 0/3"
+            },
+            {
+              "call": 2,
+              "prompt": "(failure #2)",
+              "model": "gpt-4",
+              "agent_id": "agent-errors",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": "Error count 0/3"
+            },
+            {
+              "call": 3,
+              "prompt": "(failure #3)",
+              "model": "gpt-4",
+              "agent_id": "agent-errors",
+              "action": "TRIPPED",
+              "strategy": "error_threshold",
+              "details": "Error count 3 hit threshold 3"
+            },
+            {
+              "call": 4,
+              "prompt": "(failure #4)",
+              "model": "gpt-4",
+              "agent_id": "agent-errors",
+              "action": "BLOCKED",
+              "strategy": "circuit_breaker",
+              "details": "CB OPEN after 3 errors"
+            },
+            {
+              "call": 5,
+              "prompt": "(failure #5)",
+              "model": "gpt-4",
+              "agent_id": "agent-errors",
+              "action": "BLOCKED",
+              "strategy": "circuit_breaker",
+              "details": "CB OPEN after 3 errors"
+            }
+          ],
+          "result": "PASS - CB tripped at call 3 (threshold=3)",
+          "failed": false,
+          "stats": {
+            "error_threshold": 3,
+            "tripped_at_call": 3,
+            "total_errors_sent": 5,
+            "tripped": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "Budget Enforcer",
+      "status": "pass",
+      "tests": [
+        {
+          "name": "Budget Reservation Flow",
+          "strategy": "reservation",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "(reserve $2.00, attempt 1)",
+              "model": "-",
+              "agent_id": "budget-test",
+              "action": "RESERVED",
+              "strategy": "reservation",
+              "details": "Reserved $2.00 | spent=$2.00 remaining=$8.00"
+            },
+            {
+              "call": 2,
+              "prompt": "(reserve $2.00, attempt 2)",
+              "model": "-",
+              "agent_id": "budget-test",
+              "action": "RESERVED",
+              "strategy": "reservation",
+              "details": "Reserved $2.00 | spent=$4.00 remaining=$6.00"
+            },
+            {
+              "call": 3,
+              "prompt": "(reserve $2.00, attempt 3)",
+              "model": "-",
+              "agent_id": "budget-test",
+              "action": "RESERVED",
+              "strategy": "reservation",
+              "details": "Reserved $2.00 | spent=$6.00 remaining=$4.00"
+            },
+            {
+              "call": 4,
+              "prompt": "(reserve $2.00, attempt 4)",
+              "model": "-",
+              "agent_id": "budget-test",
+              "action": "RESERVED",
+              "strategy": "reservation",
+              "details": "Reserved $2.00 | spent=$8.00 remaining=$2.00"
+            },
+            {
+              "call": 5,
+              "prompt": "(reserve $2.00, attempt 5)",
+              "model": "-",
+              "agent_id": "budget-test",
+              "action": "RESERVED",
+              "strategy": "reservation",
+              "details": "Reserved $2.00 | spent=$10.00 remaining=$0.00"
+            },
+            {
+              "call": 6,
+              "prompt": "(reserve $2.00, attempt 6)",
+              "model": "-",
+              "agent_id": "budget-test",
+              "action": "REJECTED",
+              "strategy": "reservation",
+              "details": "Budget exceeded: spent=$10.00 limit=$10.00"
+            }
+          ],
+          "result": "5 reserved, 1 rejected",
+          "failed": false,
+          "stats": {
+            "budget_limit": 10.0,
+            "total_spent": 10.0,
+            "remaining": 0.0,
+            "percentage_used": 100.0,
+            "reservations_accepted": 5,
+            "reservations_rejected": 1
+          }
+        },
+        {
+          "name": "Budget Reconciliation",
+          "strategy": "reconciliation",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "(reserve $5.00 estimated)",
+              "model": "-",
+              "agent_id": "reconcile-test",
+              "action": "RESERVED",
+              "strategy": "reconciliation",
+              "details": "Reserved $5.00 | spent=$5.00 remaining=$5.00"
+            },
+            {
+              "call": 2,
+              "prompt": "(reconcile: actual=$3.00, estimated=$5.00)",
+              "model": "-",
+              "agent_id": "reconcile-test",
+              "action": "RECONCILED",
+              "strategy": "reconciliation",
+              "details": "Actual $3.00 vs estimated $5.00 | released=$2.00 back | spent=$3.00 remaining=$7.00"
+            },
+            {
+              "call": 3,
+              "prompt": "(verify remaining budget)",
+              "model": "-",
+              "agent_id": "reconcile-test",
+              "action": "VERIFIED",
+              "strategy": "reconciliation",
+              "details": "Final: spent=$3.00 remaining=$7.00 (expected remaining=$7.00)"
+            }
+          ],
+          "result": "PASS - $2.00 released back, remaining=$7.00",
+          "failed": false,
+          "stats": {
+            "budget_limit": 10.0,
+            "estimated_cost": 5.0,
+            "actual_cost": 3.0,
+            "amount_released": 2.0,
+            "final_spent": 3.0,
+            "final_remaining": 7.0
+          }
+        },
+        {
+          "name": "Budget Threshold Alerts",
+          "strategy": "thresholds",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "(spend $5.00, total $5.00)",
+              "model": "-",
+              "agent_id": "threshold-test",
+              "action": "INFO",
+              "strategy": "thresholds",
+              "details": "Spent $5.00/10.00 (50%) | alert=info (matches expected)"
+            },
+            {
+              "call": 2,
+              "prompt": "(spend $3.00, total $8.00)",
+              "model": "-",
+              "agent_id": "threshold-test",
+              "action": "WARNING",
+              "strategy": "thresholds",
+              "details": "Spent $8.00/10.00 (80%) | alert=warning (matches expected)"
+            },
+            {
+              "call": 3,
+              "prompt": "(spend $1.00, total $9.00)",
+              "model": "-",
+              "agent_id": "threshold-test",
+              "action": "URGENT",
+              "strategy": "thresholds",
+              "details": "Spent $9.00/10.00 (90%) | alert=urgent (matches expected)"
+            },
+            {
+              "call": 4,
+              "prompt": "(spend $1.00, total $10.00)",
+              "model": "-",
+              "agent_id": "threshold-test",
+              "action": "CRITICAL",
+              "strategy": "thresholds",
+              "details": "Spent $10.00/10.00 (100%) | alert=critical (matches expected)"
+            }
+          ],
+          "result": "PASS - all 4 threshold alerts fired correctly",
+          "failed": false,
+          "stats": {
+            "budget_limit": 10.0,
+            "thresholds_configured": [
+              0.5,
+              0.8,
+              0.9,
+              1.0
+            ],
+            "alerts_fired": 4,
+            "alerts_expected": 4
+          }
+        },
+        {
+          "name": "Full Pipeline: Loop -> CB Trip -> Budget Block",
+          "strategy": "full_pipeline",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "Explain quantum computing",
+              "model": "gpt-4",
+              "agent_id": "pipeline-test",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": "Call completed | cost=$2.00 | budget spent=$2.00 remaining=$98.00"
+            },
+            {
+              "call": 2,
+              "prompt": "Explain quantum computing",
+              "model": "gpt-4",
+              "agent_id": "pipeline-test",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": "Call completed | cost=$2.00 | budget spent=$4.00 remaining=$96.00"
+            },
+            {
+              "call": 3,
+              "prompt": "Explain quantum computing",
+              "model": "gpt-4",
+              "agent_id": "pipeline-test",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": "Call completed | cost=$2.00 | budget spent=$6.00 remaining=$94.00"
+            },
+            {
+              "call": 4,
+              "prompt": "Explain quantum computing",
+              "model": "gpt-4",
+              "agent_id": "pipeline-test",
+              "action": "TRIPPED",
+              "strategy": "hash_dedup",
+              "details": "Loop detected, CB tripped | budget untouched (spent=$6.00)"
+            },
+            {
+              "call": 5,
+              "prompt": "Explain quantum computing",
+              "model": "gpt-4",
+              "agent_id": "pipeline-test",
+              "action": "BLOCKED",
+              "strategy": "circuit_breaker",
+              "details": "CB OPEN -- budget untouched (spent=$6.00)"
+            }
+          ],
+          "result": "PASS - 3 allowed, 1 tripped, 1 blocked | budget=$6.00/$100.00",
+          "failed": false,
+          "stats": {
+            "total_calls_attempted": 5,
+            "allowed": 3,
+            "loop_tripped": true,
+            "cb_blocked": 1,
+            "total_budget_spent": 6.0,
+            "budget_remaining": 94.0
+          }
+        }
+      ]
+    }
+  ]
+}
