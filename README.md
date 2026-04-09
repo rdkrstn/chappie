@@ -4,8 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Tests: 40 passing](https://img.shields.io/badge/tests-40%20passing-brightgreen.svg)](#testing)
-[![Status: Day 1 of 7](https://img.shields.io/badge/status-Day%201%20of%207-orange.svg)](#build-progress)
+[![Tests: 55 passing](https://img.shields.io/badge/tests-55%20passing-brightgreen.svg)](#testing)
+[![Status: Day 2 of 7](https://img.shields.io/badge/status-Day%202%20of%207-orange.svg)](#build-progress)
 
 LiteLLM gives you budget caps. Chappie gives you behavior detection.
 
@@ -94,6 +94,118 @@ Three detection strategies run on every call. The first match wins:
 
 Detection state is kept **in-memory** (no Redis on the hot path). Each agent gets its own isolated window.
 
+## Circuit Breaker
+
+Loop detection tells you something is wrong. The circuit breaker acts on it.
+
+When Chappie detects a loop, it trips the circuit breaker for that specific agent. The agent is blocked from making further LLM calls until a cooldown period expires or an operator manually resets it. Other agents are unaffected.
+
+### The Three States
+
+```
+               loop detected
+  CLOSED ─────────────────────► OPEN
+    ▲                             │
+    │                             │ cooldown expires
+    │ probe call succeeds         ▼
+    └──────────────────────── HALF_OPEN
+                               │
+           probe call fails    │
+           ────────────────────► OPEN (reset cooldown)
+```
+
+| State | What Happens | Duration |
+|-------|-------------|----------|
+| **CLOSED** | Normal operation. All requests pass through. Chappie monitors for loops in the background. | Default state |
+| **OPEN** | Agent is blocked. Every request returns HTTP 429 immediately, before it reaches the LLM. No tokens burned, no cost incurred. | `cooldown_sec` (default: 300s / 5 min) |
+| **HALF_OPEN** | Cooldown expired. Chappie allows one probe call through to test if the agent has recovered. | 1 call |
+
+After the probe call in HALF_OPEN:
+- **Probe succeeds**: circuit closes, agent resumes normal operation.
+- **Probe fails or triggers another loop**: circuit re-opens, cooldown resets.
+
+### How It Connects to Loop Detection
+
+The full flow from detection to enforcement:
+
+```
+  Agent sends request
+       │
+       ▼
+  ChappieLogger.pre_call_hook()
+       │
+       ├─► Is circuit breaker OPEN for this agent?
+       │     YES ──► Return 429 immediately (no LLM call)
+       │     NO  ──► Continue
+       │
+       ├─► Run loop detection (hash dedup, cycle, velocity)
+       │     LOOP DETECTED ──► Trip circuit breaker ──► Return 429
+       │     NO LOOP       ──► Allow request through to LLM
+       │
+       ▼
+  LLM processes request
+       │
+       ▼
+  ChappieLogger.post_call_hook()
+       │
+       ├─► Record call in loop detector
+       └─► Record error count for circuit breaker (failures only)
+```
+
+The circuit breaker also tracks raw error counts independently of loop detection. If an agent accumulates `error_threshold` (default: 5) LLM failures within `error_window_sec` (default: 60s), the breaker trips. This catches scenarios where the agent is not looping but is hammering a failing endpoint repeatedly.
+
+### Blocked Agent Response
+
+When an agent is blocked by an open circuit breaker, the caller receives:
+
+```json
+{
+  "error": "chappie_circuit_open",
+  "agent_id": "my-research-agent",
+  "state": "open",
+  "reason": "Loop detected via hash_dedup: Hash 3f2a... seen 3 times in last 20 calls",
+  "open_until": "2025-01-15T14:35:00Z",
+  "cooldown_remaining_sec": 287,
+  "message": "Chappie circuit breaker is OPEN for this agent. Retry after cooldown or request a manual reset."
+}
+```
+
+HTTP status: `429 Too Many Requests`
+
+The `open_until` timestamp and `cooldown_remaining_sec` field tell the caller exactly when the agent will be eligible for a probe call.
+
+### Trip Event Log
+
+When the circuit breaker trips, Chappie emits a structured event:
+
+```json
+{
+  "event_type": "circuit_breaker.tripped",
+  "agent_id": "my-research-agent",
+  "data": {
+    "trigger": "loop_detected",
+    "strategy": "hash_dedup",
+    "previous_state": "closed",
+    "new_state": "open",
+    "error_count": 3,
+    "cooldown_sec": 300,
+    "open_until": "2025-01-15T14:35:00Z"
+  },
+  "timestamp": "2025-01-15T14:30:00Z"
+}
+```
+
+### Manual Reset
+
+Operators can reset a tripped circuit breaker without waiting for the cooldown:
+
+```bash
+# Via the REST API (Day 4)
+curl -X POST http://localhost:8787/api/agents/my-research-agent/circuit-breaker/reset
+```
+
+This immediately transitions the agent from OPEN to CLOSED, allowing requests through again. Use this when you have fixed the underlying issue (bad prompt, misconfigured tool, stuck workflow) and want the agent back online.
+
 ### Two Modes
 
 | Mode | Behavior | Use Case |
@@ -152,6 +264,12 @@ CHAPPIE_LOOP_DETECTION__REPEAT_THRESHOLD=3
 CHAPPIE_LOOP_DETECTION__CYCLE_MAX_PERIOD=4
 CHAPPIE_LOOP_DETECTION__VELOCITY_WINDOW_SEC=60
 CHAPPIE_LOOP_DETECTION__VELOCITY_MULTIPLIER=5.0
+
+# Circuit Breaker
+CHAPPIE_CIRCUIT_BREAKER__ERROR_THRESHOLD=5      # Errors before the breaker trips
+CHAPPIE_CIRCUIT_BREAKER__ERROR_WINDOW_SEC=60     # Time window for counting errors
+CHAPPIE_CIRCUIT_BREAKER__COOLDOWN_SEC=300        # Seconds the breaker stays open (5 min)
+CHAPPIE_CIRCUIT_BREAKER__HALF_OPEN_MAX_CALLS=1   # Probe calls allowed in half-open state
 ```
 
 See [`.env.example`](.env.example) for the full list.
@@ -162,29 +280,41 @@ See [`.env.example`](.env.example) for the full list.
 - **Raising `WINDOW_SIZE`** above 20 gives more context but uses more memory per agent.
 - **`VELOCITY_MULTIPLIER=5.0`** means "5x the normal rate." Lower it for tighter control on expensive models.
 - The velocity detector needs 5 calls to build a baseline. It will never flag during warmup.
+- **`COOLDOWN_SEC=300`** keeps a tripped agent blocked for 5 minutes. Shorten it for development environments where agents restart frequently. Lengthen it for production agents that burn expensive tokens.
+- **`ERROR_THRESHOLD=5`** controls how many LLM failures (timeouts, 500s, rate limits from the provider) trip the breaker independently of loop detection. Lower this for expensive models where even a few wasted retries matter.
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────┐
-│            LiteLLM Proxy                │
-│                                         │
-│  ┌──────────────────────────────────┐   │
-│  │      ChappieLogger               │   │
-│  │      (CustomLogger hook)          │   │
-│  │                                   │   │
-│  │  pre_call   ──► LoopDetector      │   │
-│  │               ├─ Hash Dedup       │   │
-│  │               ├─ Cycle Detection  │   │
-│  │               └─ Velocity Anomaly │   │
-│  │                                   │   │
-│  │  post_call  ──► Record call       │   │
-│  │               └─ Log cost         │   │
-│  └──────────────────────────────────┘   │
-│                                         │
-│  State: in-memory (per agent)           │
-│  Store: Redis or MemoryStore fallback   │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                   LiteLLM Proxy                      │
+│                                                      │
+│  ┌───────────────────────────────────────────────┐   │
+│  │      ChappieLogger (CustomLogger hook)         │   │
+│  │                                                │   │
+│  │  pre_call ──► CircuitBreaker.check()           │   │
+│  │               │                                │   │
+│  │               ├─ OPEN? ──► 429 (blocked)       │   │
+│  │               │                                │   │
+│  │               └─ CLOSED/HALF_OPEN?             │   │
+│  │                    │                           │   │
+│  │                    ▼                           │   │
+│  │                  LoopDetector.check()           │   │
+│  │                  ├─ Hash Dedup                  │   │
+│  │                  ├─ Cycle Detection             │   │
+│  │                  └─ Velocity Anomaly            │   │
+│  │                    │                           │   │
+│  │                    ├─ LOOP ──► CB.trip() ──► 429│   │
+│  │                    └─ OK   ──► allow request    │   │
+│  │                                                │   │
+│  │  post_call ──► Record call in LoopDetector     │   │
+│  │             ──► Record error in CircuitBreaker  │   │
+│  │             ──► Log cost                        │   │
+│  └───────────────────────────────────────────────┘   │
+│                                                      │
+│  State: in-memory (per agent)                        │
+│  Store: Redis or MemoryStore fallback                │
+└──────────────────────────────────────────────────────┘
 ```
 
 ### Design Decisions
@@ -221,12 +351,16 @@ pip install -e ".[dev]"
 pytest
 ```
 
-40 tests covering:
+55 tests covering:
 - Hash dedup detection (exact repeats, threshold boundaries, different models)
 - Cycle detection (period 2, period 3, period 4, insufficient data)
 - Velocity anomaly detection (spike detection, warmup behavior, baseline drift protection)
 - Agent isolation (loops in one agent don't affect another)
 - Store layer (Redis commands, MemoryStore equivalence)
+- Circuit breaker state transitions (CLOSED to OPEN, OPEN to HALF_OPEN, HALF_OPEN to CLOSED)
+- Circuit breaker error counting (threshold, window expiry, reset on close)
+- Circuit breaker cooldown timing (expiry, re-trip on probe failure)
+- Circuit breaker integration with loop detection (loop triggers trip)
 
 ## Build Progress
 
@@ -235,7 +369,7 @@ Chappie is being built in public over 7 days.
 | Day | Feature | Status |
 |-----|---------|--------|
 | **1** | Loop Detector (3 strategies) + LiteLLM integration + Store layer | **Done** |
-| 2 | Circuit Breaker (CLOSED/OPEN/HALF_OPEN state machine) | Planned |
+| **2** | Circuit Breaker (CLOSED/OPEN/HALF_OPEN state machine) | **Done** |
 | 3 | Budget Enforcer (reservation-based atomic enforcement) | Planned |
 | 4 | CLI (`budgetctl`) + Alerts (Slack/webhook) + REST API | Planned |
 | 5 | Docs + Docker + CI pipeline | Planned |
@@ -253,13 +387,15 @@ chappie/
 │   ├── logger.py            # ChappieLogger (LiteLLM CustomLogger)
 │   ├── models.py            # Shared Pydantic models
 │   ├── engine/
-│   │   └── loop_detector.py # The three detection strategies
+│   │   ├── loop_detector.py    # The three detection strategies
+│   │   └── circuit_breaker.py  # Per-agent CLOSED/OPEN/HALF_OPEN state machine
 │   └── store/
 │       ├── __init__.py      # Store protocol + factory
 │       ├── memory.py        # In-memory store (no dependencies)
 │       └── redis.py         # Redis store
 ├── tests/
 │   ├── test_loop_detector.py
+│   ├── test_circuit_breaker.py
 │   └── test_store.py
 ├── examples/
 │   └── quick_test.py        # Run the demo (no API key needed)
