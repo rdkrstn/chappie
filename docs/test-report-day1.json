@@ -1,0 +1,309 @@
+{
+  "generated_at": "2026-04-09T15:42:47.958516+00:00",
+  "version": "0.1.0",
+  "day": 1,
+  "modules_tested": [
+    {
+      "name": "Loop Detector",
+      "status": "pass",
+      "tests": [
+        {
+          "name": "Hash Dedup Detection",
+          "strategy": "hash_dedup",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-dedup",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-dedup",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 3,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-dedup",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 4,
+              "prompt": "What is the weather in Tokyo?",
+              "model": "gpt-4",
+              "agent_id": "agent-dedup",
+              "action": "BLOCKED",
+              "strategy": "hash_dedup",
+              "details": "Hash ed38ebde... seen 3 times in last 3 calls (threshold=3)"
+            },
+            {
+              "call": 5,
+              "prompt": "Tell me about Python",
+              "model": "gpt-4",
+              "agent_id": "agent-dedup",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            }
+          ],
+          "result": "1 blocked, 4 allowed",
+          "stats": {
+            "agent_id": "agent-dedup",
+            "total_calls": 4,
+            "window_size": 4,
+            "window_capacity": 10,
+            "unique_hashes": 2,
+            "current_velocity_cpm": 4.0,
+            "velocity_baseline_cpm": 2.205
+          }
+        },
+        {
+          "name": "Cycle Detection (A-B-A-B)",
+          "strategy": "cycle",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "Summarize the document",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "Translate to Spanish",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 3,
+              "prompt": "Summarize the document",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 4,
+              "prompt": "Translate to Spanish",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 5,
+              "prompt": "Summarize the document",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 6,
+              "prompt": "Translate to Spanish",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 7,
+              "prompt": "Summarize the document",
+              "model": "gpt-4",
+              "agent_id": "agent-cycle",
+              "action": "BLOCKED",
+              "strategy": "cycle",
+              "details": "Repeating cycle of period 2 detected: ['5e51dce5', 'f4d39639']"
+            }
+          ],
+          "result": "1 blocked, 6 allowed",
+          "stats": {
+            "agent_id": "agent-cycle",
+            "total_calls": 6,
+            "window_size": 6,
+            "window_capacity": 20,
+            "unique_hashes": 2,
+            "current_velocity_cpm": 6.0,
+            "velocity_baseline_cpm": 2.4310125000000005
+          }
+        },
+        {
+          "name": "No False Positives (varied prompts)",
+          "strategy": "none",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "What is machine learning?",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "Explain neural networks",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 3,
+              "prompt": "How does backpropagation work?",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 4,
+              "prompt": "What is gradient descent?",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 5,
+              "prompt": "Tell me about transformers",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 6,
+              "prompt": "What is attention mechanism?",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 7,
+              "prompt": "Explain BERT architecture",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 8,
+              "prompt": "What is GPT?",
+              "model": "gpt-4",
+              "agent_id": "agent-varied",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            }
+          ],
+          "result": "0 false positives (should be 0)",
+          "stats": {
+            "agent_id": "agent-varied",
+            "total_calls": 8,
+            "window_size": 8,
+            "window_capacity": 10,
+            "unique_hashes": 8,
+            "current_velocity_cpm": 8.0,
+            "velocity_baseline_cpm": 2.680191281250001
+          }
+        },
+        {
+          "name": "Agent Isolation",
+          "strategy": "isolation",
+          "events": [
+            {
+              "call": 1,
+              "prompt": "What is the weather?",
+              "model": "gpt-4",
+              "agent_id": "agent-A",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "What is the weather?",
+              "model": "gpt-4",
+              "agent_id": "agent-A",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 1,
+              "prompt": "What is the weather?",
+              "model": "gpt-4",
+              "agent_id": "agent-B",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            },
+            {
+              "call": 2,
+              "prompt": "What is the weather?",
+              "model": "gpt-4",
+              "agent_id": "agent-B",
+              "action": "ALLOWED",
+              "strategy": null,
+              "details": null
+            }
+          ],
+          "result": "PASS - agents isolated"
+        },
+        {
+          "name": "Window Size Enforcement",
+          "strategy": "window",
+          "events": [
+            {
+              "call": 8,
+              "prompt": "8 prompts recorded into window_size=5",
+              "model": "gpt-4",
+              "agent_id": "agent-window",
+              "action": "INFO",
+              "strategy": null,
+              "details": "Window holds 5 of 5 capacity"
+            }
+          ],
+          "result": "Window size: 5 (max 5)",
+          "stats": {
+            "agent_id": "agent-window",
+            "total_calls": 8,
+            "window_size": 5,
+            "window_capacity": 5,
+            "unique_hashes": 5,
+            "current_velocity_cpm": 8.0,
+            "velocity_baseline_cpm": 2.680191281250001
+          }
+        }
+      ]
+    }
+  ]
+}

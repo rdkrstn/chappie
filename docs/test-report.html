@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chappie Test Report</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #09090b; color: #e4e4e7; line-height: 1.6; }
+
+  .header { padding: 32px; border-bottom: 1px solid #27272a; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .header h1 { font-size: 22px; font-weight: 700; }
+  .header h1 span { color: #a78bfa; }
+  .header .meta { display: flex; gap: 12px; }
+  .header .meta span { font-size: 12px; color: #71717a; background: #18181b; padding: 4px 10px; border-radius: 6px; border: 1px solid #27272a; }
+
+  .day-selector { padding: 16px 32px; border-bottom: 1px solid #27272a; display: flex; gap: 8px; overflow-x: auto; }
+  .day-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #27272a; background: #18181b; color: #a1a1aa; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+  .day-btn:hover { border-color: #3f3f46; color: #e4e4e7; }
+  .day-btn.active { background: #a78bfa; color: #09090b; border-color: #a78bfa; font-weight: 600; }
+
+  .content { max-width: 960px; margin: 0 auto; padding: 32px; }
+
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .summary-card { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 20px; text-align: center; }
+  .summary-card .value { font-size: 28px; font-weight: 800; color: #a78bfa; }
+  .summary-card .label { font-size: 12px; color: #71717a; margin-top: 4px; }
+
+  .module { margin-bottom: 32px; }
+  .module-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .module-header h2 { font-size: 18px; font-weight: 600; }
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-pass { background: #052e16; color: #4ade80; border: 1px solid #166534; }
+  .badge-fail { background: #450a0a; color: #f87171; border: 1px solid #991b1b; }
+
+  .test-card { background: #18181b; border: 1px solid #27272a; border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+  .test-header { padding: 14px 20px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+  .test-header:hover { background: #1f1f23; }
+  .test-header h3 { font-size: 14px; font-weight: 600; }
+  .test-result { font-size: 12px; color: #a1a1aa; }
+  .test-body { display: none; padding: 0 20px 20px; }
+  .test-card.open .test-body { display: block; }
+  .test-card.open .chevron { transform: rotate(90deg); }
+  .chevron { color: #52525b; transition: transform 0.2s; font-size: 14px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+  th { text-align: left; padding: 8px 12px; color: #a78bfa; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #27272a; }
+  td { padding: 8px 12px; border-bottom: 1px solid #1f1f23; }
+  tr:hover td { background: #1f1f23; }
+  .action-allowed { color: #4ade80; font-weight: 600; }
+  .action-blocked { color: #f87171; font-weight: 600; }
+  .action-info { color: #60a5fa; font-weight: 600; }
+
+  .timeline { margin-top: 16px; }
+  .timeline-bar { display: flex; gap: 2px; margin-top: 8px; border-radius: 6px; overflow: hidden; }
+  .timeline-seg { height: 32px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; min-width: 32px; flex: 1; }
+  .seg-allowed { background: #166534; color: #4ade80; }
+  .seg-blocked { background: #991b1b; color: #f87171; }
+  .seg-info { background: #1e3a5f; color: #60a5fa; }
+
+  .stats-box { margin-top: 12px; background: #111113; border-radius: 8px; padding: 12px 16px; font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; color: #a1a1aa; overflow-x: auto; white-space: pre; }
+
+  .no-data { text-align: center; padding: 60px; color: #52525b; }
+  .no-data p { margin-top: 8px; font-size: 14px; }
+
+  .load-btn { display: block; margin: 20px auto; padding: 10px 24px; background: #a78bfa; color: #09090b; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .load-btn:hover { background: #8b5cf6; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span>Chappie</span> Test Report</h1>
+  <div class="meta" id="meta"></div>
+</div>
+
+<div class="day-selector" id="daySelector"></div>
+
+<div class="content" id="content">
+  <div class="no-data">
+    <p>Loading report data...</p>
+  </div>
+</div>
+
+<script>
+let reports = {};
+
+async function loadReport(day) {
+  const file = `test-report-day${day}.json`;
+  try {
+    const resp = await fetch(file);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    reports[day] = data;
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function init() {
+  // Try loading days 1-7
+  const days = [];
+  for (let d = 1; d <= 7; d++) {
+    const data = await loadReport(d);
+    if (data) days.push(d);
+  }
+
+  if (days.length === 0) {
+    document.getElementById('content').innerHTML = `
+      <div class="no-data">
+        <p>No report files found. Run tests first:</p>
+        <code style="color:#a78bfa; display:block; margin-top:12px;">py -3.12 tests/report.py</code>
+      </div>`;
+    return;
+  }
+
+  // Render day selector
+  const selector = document.getElementById('daySelector');
+  days.forEach(d => {
+    const btn = document.createElement('div');
+    btn.className = 'day-btn' + (d === days[0] ? ' active' : '');
+    btn.textContent = `Day ${d}`;
+    btn.onclick = () => renderDay(d);
+    selector.appendChild(btn);
+  });
+
+  renderDay(days[days.length - 1]); // Show latest day
+}
+
+function renderDay(day) {
+  // Update active button
+  document.querySelectorAll('.day-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.day-btn').forEach(b => {
+    if (b.textContent === `Day ${day}`) b.classList.add('active');
+  });
+
+  const data = reports[day];
+  if (!data) return;
+
+  // Meta
+  document.getElementById('meta').innerHTML = `
+    <span>Day ${data.day}</span>
+    <span>v${data.version}</span>
+    <span>${new Date(data.generated_at).toLocaleDateString()}</span>
+  `;
+
+  const totalTests = data.modules_tested.reduce((sum, m) => sum + m.tests.length, 0);
+  const passedModules = data.modules_tested.filter(m => m.status === 'pass').length;
+  const totalEvents = data.modules_tested.reduce((sum, m) =>
+    sum + m.tests.reduce((s, t) => s + t.events.length, 0), 0);
+  const blockedEvents = data.modules_tested.reduce((sum, m) =>
+    sum + m.tests.reduce((s, t) => s + t.events.filter(e => e.action === 'BLOCKED').length, 0), 0);
+
+  let html = `
+    <div class="summary-grid">
+      <div class="summary-card"><div class="value">${data.modules_tested.length}</div><div class="label">Modules</div></div>
+      <div class="summary-card"><div class="value">${passedModules}/${data.modules_tested.length}</div><div class="label">Passed</div></div>
+      <div class="summary-card"><div class="value">${totalTests}</div><div class="label">Tests</div></div>
+      <div class="summary-card"><div class="value">${totalEvents}</div><div class="label">Events</div></div>
+      <div class="summary-card"><div class="value">${blockedEvents}</div><div class="label">Blocked</div></div>
+    </div>
+  `;
+
+  data.modules_tested.forEach(module => {
+    const badgeClass = module.status === 'pass' ? 'badge-pass' : 'badge-fail';
+    html += `
+      <div class="module">
+        <div class="module-header">
+          <h2>${module.name}</h2>
+          <span class="badge ${badgeClass}">${module.status}</span>
+        </div>
+    `;
+
+    module.tests.forEach((test, idx) => {
+      const id = `test-${module.name}-${idx}`.replace(/\s/g, '-');
+      html += `
+        <div class="test-card" id="${id}">
+          <div class="test-header" onclick="document.getElementById('${id}').classList.toggle('open')">
+            <h3>${test.name}</h3>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span class="test-result">${test.result}</span>
+              <span class="chevron">&#9654;</span>
+            </div>
+          </div>
+          <div class="test-body">
+            <div class="timeline">
+              <div style="font-size:12px;color:#71717a;">Event Timeline</div>
+              <div class="timeline-bar">
+                ${test.events.map(e => {
+                  const cls = e.action === 'BLOCKED' ? 'seg-blocked' : e.action === 'INFO' ? 'seg-info' : 'seg-allowed';
+                  return `<div class="timeline-seg ${cls}" title="${e.prompt}">${e.call}</div>`;
+                }).join('')}
+              </div>
+            </div>
+            <table>
+              <tr><th>#</th><th>Agent</th><th>Prompt</th><th>Action</th><th>Strategy</th></tr>
+              ${test.events.map(e => `
+                <tr>
+                  <td>${e.call}</td>
+                  <td>${e.agent_id}</td>
+                  <td>${e.prompt.substring(0, 40)}</td>
+                  <td class="action-${e.action.toLowerCase()}">${e.action}</td>
+                  <td>${e.strategy || '-'}</td>
+                </tr>
+              `).join('')}
+            </table>
+            ${test.stats ? `<div class="stats-box">${JSON.stringify(test.stats, null, 2)}</div>` : ''}
+          </div>
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+  });
+
+  document.getElementById('content').innerHTML = html;
+}
+
+init();
+</script>
+</body>
+</html>
