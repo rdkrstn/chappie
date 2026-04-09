@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "chappie"
+name = "budgetctl"
 version = "0.1.0"
 description = "The circuit breaker for AI agent spend"
 readme = "README.md"
@@ -45,6 +45,9 @@ budgetctl = "cli.main:cli"
 [project.urls]
 Homepage = "https://github.com/rdkrstn/chappie"
 Issues = "https://github.com/rdkrstn/chappie/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["chappie", "cli"]
 
 [tool.ruff]
 target-version = "py310"
