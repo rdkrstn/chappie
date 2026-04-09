@@ -403,6 +403,46 @@ chappie/
 └── .env.example
 ```
 
+## Coming Soon: Adaptive Insights + Model Benchmarking
+
+### Adaptive Insights (v0.2)
+
+Static thresholds are a starting point. An email-drafting agent that makes 5-8 calls per task is different from a code-reviewer that makes 15-25 calls. Chappie will learn each agent's normal behavior and auto-adjust thresholds.
+
+```
+budgetctl insights email-drafter
+
+  Sessions:           142
+  Avg calls/session:  6.3
+  Avg cost/session:   $0.42
+  P95 calls:          11 (auto-threshold)
+  Velocity baseline:  3.2 calls/min
+  Loops caught:       3 (2.1% anomaly rate)
+  Recommendation:     Threshold auto-set to 11 (default was 3)
+```
+
+After 10 sessions, Chappie switches from static defaults to per-agent adaptive thresholds based on the agent's actual P95 behavior. Fewer false positives, tighter detection.
+
+### Model Loop Leaderboard (v0.2)
+
+Every loop detection is tagged with the model name. Chappie aggregates this into a per-model benchmark. Which LLMs loop the most?
+
+```
+budgetctl benchmark
+
+  Model                  Calls    Loops    Rate     Avg Cost/Call
+  claude-haiku-4-5       12,450   89       0.71%    $0.003
+  gpt-4o-mini            8,200    142      1.73%    $0.008
+  claude-sonnet-4        5,100    18       0.35%    $0.024
+  gpt-4o                 3,800    31       0.82%    $0.041
+  mistral-large          2,100    67       3.19%    $0.015
+
+  Most loop-prone: mistral-large (3.19%)
+  Most cost-efficient: claude-haiku-4-5 ($0.003/call, 0.71% loop rate)
+```
+
+Privacy-safe: only model names, call counts, loop counts, and cost aggregates. No prompt content stored.
+
 ## Contributing
 
 This is early-stage software. Issues and PRs are welcome.
