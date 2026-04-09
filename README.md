@@ -34,7 +34,7 @@ LiteLLM's built-in budget limits work like a spending cap on a credit card. They
 ## Quick Start
 
 ```bash
-pip install chappie
+pip install budgetctl
 ```
 
 Add Chappie to your LiteLLM proxy config:
@@ -43,13 +43,13 @@ Add Chappie to your LiteLLM proxy config:
 # litellm_config.yaml
 litellm_settings:
   callbacks:
-    - chappie.logger
+    - budgetctl.logger
 ```
 
 That's it. Chappie starts in **observe mode** by default. It logs detected loops but does not block requests. When you're confident, switch to enforce mode:
 
 ```bash
-export CHAPPIE_MODE=enforce
+export BUDGETCTL_MODE=enforce
 ```
 
 ## See It Work
@@ -133,7 +133,7 @@ The full flow from detection to enforcement:
   Agent sends request
        │
        ▼
-  ChappieLogger.pre_call_hook()
+  BudgetCtlLogger.pre_call_hook()
        │
        ├─► Is circuit breaker OPEN for this agent?
        │     YES ──► Return 429 immediately (no LLM call)
@@ -147,7 +147,7 @@ The full flow from detection to enforcement:
   LLM processes request
        │
        ▼
-  ChappieLogger.post_call_hook()
+  BudgetCtlLogger.post_call_hook()
        │
        ├─► Record call in loop detector
        └─► Record error count for circuit breaker (failures only)
@@ -279,23 +279,23 @@ HTTP status: `429 Too Many Requests`
 
 ```bash
 # Default budget when none is explicitly set for an agent/user/team
-CHAPPIE_BUDGETS__DEFAULT_BUDGET=100.0
+BUDGETCTL_BUDGETS__DEFAULT_BUDGET=100.0
 
 # Budget period reset cycle
-CHAPPIE_BUDGETS__RESET_PERIOD=monthly       # "daily", "weekly", or "monthly"
+BUDGETCTL_BUDGETS__RESET_PERIOD=monthly       # "daily", "weekly", or "monthly"
 
 # Reservation TTL in seconds (orphan protection)
-CHAPPIE_BUDGETS__RESERVATION_TTL_SEC=120
+BUDGETCTL_BUDGETS__RESERVATION_TTL_SEC=120
 
 # Alert thresholds (as decimal ratios)
-CHAPPIE_BUDGETS__ALERT_THRESHOLDS=[0.5, 0.8, 0.9, 1.0]
+BUDGETCTL_BUDGETS__ALERT_THRESHOLDS=[0.5, 0.8, 0.9, 1.0]
 ```
 
 ## CLI (budgetctl)
 
 Chappie ships with `budgetctl`, a command-line tool for managing budgets, monitoring agents, and inspecting circuit breakers.
 
-Installed automatically with `pip install chappie`.
+Installed automatically with `pip install budgetctl`.
 
 ### System Status
 
@@ -383,7 +383,7 @@ budgetctl --format json budget list | jq '.[] | select(.percentage > 80)'
 `budgetctl` talks to the Chappie API over HTTP. Set the API URL if it is not running on localhost:
 
 ```bash
-export CHAPPIE_API_URL=http://your-server:8787
+export BUDGETCTL_API_URL=http://your-server:8787
 ```
 
 ## Alerts
@@ -395,7 +395,7 @@ Chappie sends alerts when thresholds are crossed, circuit breakers trip, or loop
 Point Chappie at a Slack incoming webhook and it posts alerts to the channel of your choice:
 
 ```bash
-CHAPPIE_ALERTS__SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00/B00/xxxx
+BUDGETCTL_ALERTS__SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00/B00/xxxx
 ```
 
 ### Generic Webhook
@@ -403,7 +403,7 @@ CHAPPIE_ALERTS__SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00/B00/xxxx
 For PagerDuty, Datadog, or your own alerting system, use the generic webhook. Chappie POSTs a JSON payload on every alert:
 
 ```bash
-CHAPPIE_ALERTS__WEBHOOK_URL=https://your-system.com/alerts/chappie
+BUDGETCTL_ALERTS__WEBHOOK_URL=https://your-system.com/alerts/chappie
 ```
 
 The payload:
@@ -437,9 +437,9 @@ The payload:
 ### Alert Configuration
 
 ```bash
-CHAPPIE_ALERTS__SLACK_WEBHOOK_URL=        # Slack incoming webhook URL
-CHAPPIE_ALERTS__WEBHOOK_URL=              # Generic webhook URL (receives JSON POST)
-CHAPPIE_ALERTS__ENABLED=true              # Kill switch for all alerts
+BUDGETCTL_ALERTS__SLACK_WEBHOOK_URL=        # Slack incoming webhook URL
+BUDGETCTL_ALERTS__WEBHOOK_URL=              # Generic webhook URL (receives JSON POST)
+BUDGETCTL_ALERTS__ENABLED=true              # Kill switch for all alerts
 ```
 
 ## API
@@ -455,7 +455,7 @@ uvicorn chappie.api:app --host 0.0.0.0 --port 8787
 Or use the default port from config:
 
 ```bash
-# Reads CHAPPIE_API_PORT (default: 8787)
+# Reads BUDGETCTL_API_PORT (default: 8787)
 uvicorn chappie.api:app
 ```
 
@@ -517,8 +517,8 @@ services:
     ports:
       - "8787:8787"
     environment:
-      - CHAPPIE_REDIS_URL=redis://redis:6379
-      - CHAPPIE_MODE=observe
+      - BUDGETCTL_REDIS_URL=redis://redis:6379
+      - BUDGETCTL_MODE=observe
     depends_on:
       redis:
         condition: service_healthy
@@ -527,7 +527,7 @@ services:
 Switch to enforce mode:
 
 ```bash
-CHAPPIE_MODE=enforce docker compose up
+BUDGETCTL_MODE=enforce docker compose up
 ```
 
 ### Dockerfile
@@ -575,37 +575,37 @@ response = litellm.completion(
 
 ## Configuration
 
-All settings load from environment variables with the `CHAPPIE_` prefix:
+All settings load from environment variables with the `BUDGETCTL_` prefix:
 
 ```bash
 # Core
-CHAPPIE_MODE=observe              # "observe" or "enforce"
-CHAPPIE_REDIS_URL=redis://localhost:6379
-CHAPPIE_ON_REDIS_FAILURE=open     # "open" (allow requests) or "closed" (block)
-CHAPPIE_API_PORT=8787
+BUDGETCTL_MODE=observe              # "observe" or "enforce"
+BUDGETCTL_REDIS_URL=redis://localhost:6379
+BUDGETCTL_ON_REDIS_FAILURE=open     # "open" (allow requests) or "closed" (block)
+BUDGETCTL_API_PORT=8787
 
 # Loop Detection
-CHAPPIE_LOOP_DETECTION__WINDOW_SIZE=20
-CHAPPIE_LOOP_DETECTION__REPEAT_THRESHOLD=3
-CHAPPIE_LOOP_DETECTION__CYCLE_MAX_PERIOD=4
-CHAPPIE_LOOP_DETECTION__VELOCITY_WINDOW_SEC=60
-CHAPPIE_LOOP_DETECTION__VELOCITY_MULTIPLIER=5.0
+BUDGETCTL_LOOP_DETECTION__WINDOW_SIZE=20
+BUDGETCTL_LOOP_DETECTION__REPEAT_THRESHOLD=3
+BUDGETCTL_LOOP_DETECTION__CYCLE_MAX_PERIOD=4
+BUDGETCTL_LOOP_DETECTION__VELOCITY_WINDOW_SEC=60
+BUDGETCTL_LOOP_DETECTION__VELOCITY_MULTIPLIER=5.0
 
 # Circuit Breaker
-CHAPPIE_CIRCUIT_BREAKER__ERROR_THRESHOLD=5
-CHAPPIE_CIRCUIT_BREAKER__ERROR_WINDOW_SEC=60
-CHAPPIE_CIRCUIT_BREAKER__COOLDOWN_SEC=300
-CHAPPIE_CIRCUIT_BREAKER__HALF_OPEN_MAX_CALLS=1
+BUDGETCTL_CIRCUIT_BREAKER__ERROR_THRESHOLD=5
+BUDGETCTL_CIRCUIT_BREAKER__ERROR_WINDOW_SEC=60
+BUDGETCTL_CIRCUIT_BREAKER__COOLDOWN_SEC=300
+BUDGETCTL_CIRCUIT_BREAKER__HALF_OPEN_MAX_CALLS=1
 
 # Budgets
-CHAPPIE_BUDGETS__DEFAULT_BUDGET=100.0
-CHAPPIE_BUDGETS__RESET_PERIOD=monthly
-CHAPPIE_BUDGETS__RESERVATION_TTL_SEC=120
+BUDGETCTL_BUDGETS__DEFAULT_BUDGET=100.0
+BUDGETCTL_BUDGETS__RESET_PERIOD=monthly
+BUDGETCTL_BUDGETS__RESERVATION_TTL_SEC=120
 
 # Alerts
-CHAPPIE_ALERTS__SLACK_WEBHOOK_URL=
-CHAPPIE_ALERTS__WEBHOOK_URL=
-CHAPPIE_ALERTS__ENABLED=true
+BUDGETCTL_ALERTS__SLACK_WEBHOOK_URL=
+BUDGETCTL_ALERTS__WEBHOOK_URL=
+BUDGETCTL_ALERTS__ENABLED=true
 ```
 
 See [`.env.example`](.env.example) for the full list.
@@ -627,7 +627,7 @@ See [`.env.example`](.env.example) for the full list.
 │                   LiteLLM Proxy                      │
 │                                                      │
 │  ┌───────────────────────────────────────────────┐   │
-│  │      ChappieLogger (CustomLogger hook)         │   │
+│  │      BudgetCtlLogger (CustomLogger hook)         │   │
 │  │                                                │   │
 │  │  pre_call ──► CircuitBreaker.check()           │   │
 │  │               │                                │   │
@@ -724,10 +724,10 @@ Chappie is being built in public over 7 days.
 ```
 chappie/
 ├── chappie/
-│   ├── __init__.py              # Package entry point, exports ChappieLogger
+│   ├── __init__.py              # Package entry point, exports BudgetCtlLogger
 │   ├── config.py                # Pydantic settings (all env var config)
 │   ├── exceptions.py            # ChappieError hierarchy (loop, budget, circuit)
-│   ├── logger.py                # ChappieLogger (LiteLLM CustomLogger hook)
+│   ├── logger.py                # BudgetCtlLogger (LiteLLM CustomLogger hook)
 │   ├── models.py                # Shared Pydantic models (events, reservations, status)
 │   ├── engine/
 │   │   ├── __init__.py

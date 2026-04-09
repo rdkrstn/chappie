@@ -11,7 +11,7 @@ import time
 
 import pytest
 
-from chappie.store.memory import MemoryStore
+from budgetctl.store.memory import MemoryStore
 
 
 # ---------------------------------------------------------------------------

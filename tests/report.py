@@ -1,5 +1,5 @@
 """
-Test report generator for Chappie.
+Test report generator for BudgetCtl.
 Runs all demos and captures results into a structured .md file
 that can be rendered in an HTML data visualizer.
 
@@ -17,13 +17,13 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from chappie.config import BudgetConfig, CircuitBreakerConfig, LoopDetectorConfig
-from chappie.engine.budget_enforcer import BudgetEnforcer, BudgetScope
-from chappie.engine.circuit_breaker import CircuitBreaker, TripReason
-from chappie.engine.loop_detector import LoopDetector
-from chappie.exceptions import ChappieBudgetExceeded
-from chappie.models import CircuitBreakerState
-from chappie.store.memory import MemoryStore
+from budgetctl.config import BudgetConfig, CircuitBreakerConfig, LoopDetectorConfig
+from budgetctl.engine.budget_enforcer import BudgetEnforcer, BudgetScope
+from budgetctl.engine.circuit_breaker import CircuitBreaker, TripReason
+from budgetctl.engine.loop_detector import LoopDetector
+from budgetctl.exceptions import BudgetCtlBudgetExceeded
+from budgetctl.models import CircuitBreakerState
+from budgetctl.store.memory import MemoryStore
 
 
 def run_report():
@@ -658,7 +658,7 @@ def _test_budget_reservation_flow() -> dict:
                         f"remaining=${status.remaining:.2f}"
                     ),
                 })
-            except ChappieBudgetExceeded as exc:
+            except BudgetCtlBudgetExceeded as exc:
                 test["events"].append({
                     "call": i + 1,
                     "prompt": f"(reserve $2.00, attempt {i + 1})",
@@ -961,7 +961,7 @@ def _test_full_pipeline() -> dict:
             # Step 3: Reserve budget
             try:
                 reservation = await enforcer.reserve(scope, agent_id, cost_per_call)
-            except ChappieBudgetExceeded:
+            except BudgetCtlBudgetExceeded:
                 test["events"].append({
                     "call": i + 1,
                     "prompt": prompt[:40],

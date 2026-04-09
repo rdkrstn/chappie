@@ -1,4 +1,4 @@
-"""Alert channels and manager for Chappie budget/loop/circuit events.
+"""Alert channels and manager for BudgetCtl budget/loop/circuit events.
 
 Fires alerts to Slack (via incoming webhook) and/or a generic webhook
 endpoint when budget thresholds are crossed or circuit breakers trip.
@@ -20,9 +20,9 @@ from datetime import datetime, timezone
 
 import httpx
 
-from chappie.config import AlertConfig
+from budgetctl.config import AlertConfig
 
-logger = logging.getLogger("chappie.alerts")
+logger = logging.getLogger("budgetctl.alerts")
 
 # Timeout for outbound HTTP calls (connect + read).
 _HTTP_TIMEOUT = httpx.Timeout(10.0, connect=5.0)

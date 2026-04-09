@@ -10,10 +10,10 @@ import time
 
 import pytest
 
-from chappie.config import CircuitBreakerConfig
-from chappie.engine.circuit_breaker import CircuitBreaker, TripReason
-from chappie.models import CircuitBreakerState
-from chappie.store.memory import MemoryStore
+from budgetctl.config import CircuitBreakerConfig
+from budgetctl.engine.circuit_breaker import CircuitBreaker, TripReason
+from budgetctl.models import CircuitBreakerState
+from budgetctl.store.memory import MemoryStore
 
 
 # ---------------------------------------------------------------------------
@@ -108,7 +108,7 @@ async def test_suspended_flag_set_on_trip():
     cb, store = _make_cb()
 
     await cb.trip("agent-1", TripReason.BUDGET_EXCEEDED)
-    exists = await store.exists("chappie:suspended:agent-1")
+    exists = await store.exists("budgetctl:suspended:agent-1")
 
     assert exists is True
 
@@ -133,7 +133,7 @@ async def test_cooldown_transitions_to_half_open():
     # Simulate cooldown expiry by directly expiring the suspended key.
     # The MemoryStore uses time.monotonic() internally, so we manipulate
     # its _expiry dict to move the deadline into the past.
-    suspended_key = "chappie:suspended:agent-1"
+    suspended_key = "budgetctl:suspended:agent-1"
     store._expiry[suspended_key] = time.monotonic() - 1
 
     info = await cb.check("agent-1")
@@ -152,7 +152,7 @@ async def test_half_open_success_closes():
 
     # Trip, then expire the cooldown
     await cb.trip("agent-1", TripReason.ERROR_THRESHOLD)
-    store._expiry["chappie:suspended:agent-1"] = time.monotonic() - 1
+    store._expiry["budgetctl:suspended:agent-1"] = time.monotonic() - 1
 
     # Confirm HALF_OPEN
     info = await cb.check("agent-1")
@@ -178,7 +178,7 @@ async def test_half_open_failure_reopens():
 
     # Trip, then expire the cooldown to reach HALF_OPEN
     await cb.trip("agent-1", TripReason.LOOP_DETECTED)
-    store._expiry["chappie:suspended:agent-1"] = time.monotonic() - 1
+    store._expiry["budgetctl:suspended:agent-1"] = time.monotonic() - 1
 
     # Force transition to HALF_OPEN
     info = await cb.check("agent-1")
@@ -265,10 +265,10 @@ async def test_reset_clears_all_state():
     assert info.reason == ""
 
     # Suspended key should be gone
-    assert await store.exists("chappie:suspended:agent-1") is False
+    assert await store.exists("budgetctl:suspended:agent-1") is False
 
     # HASH should be gone
-    data = await store.hgetall("chappie:cb:agent-1")
+    data = await store.hgetall("budgetctl:cb:agent-1")
     assert data == {}
 
     # Error window should be empty
@@ -316,7 +316,7 @@ async def test_closed_success_is_noop():
     assert info.state == CircuitBreakerState.CLOSED
 
     # Also test with explicit CLOSED state in the HASH
-    await store.hset("chappie:cb:agent-1", {"state": "closed", "reason": ""})
+    await store.hset("budgetctl:cb:agent-1", {"state": "closed", "reason": ""})
     await cb.record_success("agent-1")
 
     info = await cb.check("agent-1")
@@ -449,7 +449,7 @@ async def test_full_lifecycle():
     assert info.state == CircuitBreakerState.OPEN
 
     # Expire cooldown -> HALF_OPEN
-    store._expiry["chappie:suspended:agent-1"] = time.monotonic() - 1
+    store._expiry["budgetctl:suspended:agent-1"] = time.monotonic() - 1
     info = await cb.check("agent-1")
     assert info.state == CircuitBreakerState.HALF_OPEN
 

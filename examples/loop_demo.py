@@ -1,6 +1,6 @@
 """
-Chappie Full Pipeline Demo
-===========================
+BudgetCtl Full Pipeline Demo
+==============================
 
 No API keys needed. No LLM calls. Shows the complete flow:
 1. Agent makes normal calls (allowed)
@@ -18,13 +18,13 @@ Run:
 import asyncio
 import time
 
-from chappie.config import BudgetConfig, CircuitBreakerConfig, LoopDetectorConfig
-from chappie.engine.budget_enforcer import BudgetEnforcer, BudgetScope
-from chappie.engine.circuit_breaker import CircuitBreaker, TripReason
-from chappie.engine.loop_detector import LoopDetector
-from chappie.exceptions import ChappieBudgetExceeded
-from chappie.models import CircuitBreakerState
-from chappie.store.memory import MemoryStore
+from budgetctl.config import BudgetConfig, CircuitBreakerConfig, LoopDetectorConfig
+from budgetctl.engine.budget_enforcer import BudgetEnforcer, BudgetScope
+from budgetctl.engine.circuit_breaker import CircuitBreaker, TripReason
+from budgetctl.engine.loop_detector import LoopDetector
+from budgetctl.exceptions import BudgetCtlBudgetExceeded
+from budgetctl.models import CircuitBreakerState
+from budgetctl.store.memory import MemoryStore
 
 
 DIVIDER = "-" * 60
@@ -63,7 +63,7 @@ async def main() -> None:
     scope = BudgetScope.AGENT
     await enforcer.set_budget(scope, AGENT_ID, 20.0)
 
-    banner("CHAPPIE FULL PIPELINE DEMO")
+    banner("BUDGETCTL FULL PIPELINE DEMO")
     print("  Agent budget:    $20.00")
     print(f"  Cost per call:   ${COST_PER_CALL:.2f}")
     print("  Loop threshold:  3 identical prompts")
@@ -99,7 +99,7 @@ async def main() -> None:
         # Reserve budget
         try:
             reservation = await enforcer.reserve(scope, AGENT_ID, COST_PER_CALL)
-        except ChappieBudgetExceeded as exc:
+        except BudgetCtlBudgetExceeded as exc:
             print(f"  [{i + 1}] BLOCKED by budget: spent=${exc.spent:.2f} limit=${exc.limit:.2f}")
             continue
 
@@ -161,7 +161,7 @@ async def main() -> None:
         # Reserve budget and simulate call
         try:
             reservation = await enforcer.reserve(scope, AGENT_ID, COST_PER_CALL)
-        except ChappieBudgetExceeded as exc:
+        except BudgetCtlBudgetExceeded as exc:
             print(f"  [{call_num}] BLOCKED  Budget exceeded")
             continue
 
@@ -228,7 +228,7 @@ async def main() -> None:
     if not loop_result.is_loop and cb_info.state != CircuitBreakerState.OPEN:
         try:
             reservation = await enforcer.reserve(scope, AGENT_ID, COST_PER_CALL)
-        except ChappieBudgetExceeded:
+        except BudgetCtlBudgetExceeded:
             print("  Recovery call blocked by budget")
         else:
             detector.record(AGENT_ID, messages, "gpt-4")
@@ -328,13 +328,13 @@ async def main() -> None:
     cb_final = await cb.check(AGENT_ID)
     print(f"  Circuit breaker: {cb_final.state.value}")
     print()
-    print("  Chappie protected this agent from:")
+    print("  BudgetCtl protected this agent from:")
     print("    - Infinite loops (loop detector)")
     print("    - Cascading failures (circuit breaker)")
     print("    - Runaway costs (budget enforcer)")
     print()
     print(DIVIDER)
-    print("  Demo complete. No LLM calls were made.")
+    print("  Demo complete. No LLM calls were made. BudgetCtl is working.")
     print(DIVIDER)
 
 

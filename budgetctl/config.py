@@ -1,11 +1,11 @@
-"""Chappie configuration via Pydantic BaseSettings.
+"""BudgetCtl configuration via Pydantic BaseSettings.
 
-All settings load from environment variables with the CHAPPIE_ prefix.
+All settings load from environment variables with the BUDGETCTL_ prefix.
 Nested models use double-underscore separators:
-    CHAPPIE_LOOP_DETECTION__WINDOW_SIZE=30
-    CHAPPIE_CIRCUIT_BREAKER__ERROR_THRESHOLD=10
-    CHAPPIE_BUDGETS__DEFAULT_BUDGET=500
-    CHAPPIE_ALERTS__SLACK_WEBHOOK_URL=https://hooks.slack.com/...
+    BUDGETCTL_LOOP_DETECTION__WINDOW_SIZE=30
+    BUDGETCTL_CIRCUIT_BREAKER__ERROR_THRESHOLD=10
+    BUDGETCTL_BUDGETS__DEFAULT_BUDGET=500
+    BUDGETCTL_ALERTS__SLACK_WEBHOOK_URL=https://hooks.slack.com/...
 """
 
 from __future__ import annotations
@@ -52,19 +52,19 @@ class BudgetConfig(BaseModel):
 
 
 class AlertConfig(BaseModel):
-    """Where Chappie sends budget/loop/circuit alerts."""
+    """Where BudgetCtl sends budget/loop/circuit alerts."""
 
     slack_webhook_url: str | None = None
     webhook_url: str | None = None
     enabled: bool = True
 
 
-class ChappieConfig(BaseSettings):
+class BudgetCtlConfig(BaseSettings):
     """Root configuration object.
 
-    Reads from env vars prefixed with ``CHAPPIE_``.
+    Reads from env vars prefixed with ``BUDGETCTL_``.
     Nested values use ``__`` as separator, e.g.
-    ``CHAPPIE_LOOP_DETECTION__WINDOW_SIZE=30``.
+    ``BUDGETCTL_LOOP_DETECTION__WINDOW_SIZE=30``.
     """
 
     mode: Literal["observe", "enforce"] = "observe"
@@ -82,13 +82,13 @@ class ChappieConfig(BaseSettings):
     alerts: AlertConfig = Field(default_factory=AlertConfig)
 
     model_config = {
-        "env_prefix": "CHAPPIE_",
+        "env_prefix": "BUDGETCTL_",
         "env_nested_delimiter": "__",
         "case_sensitive": False,
     }
 
     @classmethod
-    def from_env(cls) -> ChappieConfig:
-        """Convenience factory -- identical to ``ChappieConfig()`` but
+    def from_env(cls) -> BudgetCtlConfig:
+        """Convenience factory -- identical to ``BudgetCtlConfig()`` but
         makes the intent explicit at call sites."""
         return cls()

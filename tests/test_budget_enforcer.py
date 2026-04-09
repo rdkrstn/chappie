@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import pytest
 
-from chappie.config import BudgetConfig
-from chappie.engine.budget_enforcer import BudgetEnforcer, BudgetScope, estimate_cost
-from chappie.exceptions import ChappieBudgetExceeded
-from chappie.store.memory import MemoryStore
+from budgetctl.config import BudgetConfig
+from budgetctl.engine.budget_enforcer import BudgetEnforcer, BudgetScope, estimate_cost
+from budgetctl.exceptions import BudgetCtlBudgetExceeded
+from budgetctl.store.memory import MemoryStore
 
 
 # ---------------------------------------------------------------------------
@@ -65,15 +65,15 @@ async def test_reserve_success():
 
 
 # ---------------------------------------------------------------------------
-# 2. Reserve exceeds budget -- raises ChappieBudgetExceeded
+# 2. Reserve exceeds budget -- raises BudgetCtlBudgetExceeded
 # ---------------------------------------------------------------------------
 
 
 async def test_reserve_exceeds_budget():
-    """Requesting more than available budget should raise ChappieBudgetExceeded."""
+    """Requesting more than available budget should raise BudgetCtlBudgetExceeded."""
     enforcer, _ = _make_enforcer(config=_fast_config(default_budget=10.0))
 
-    with pytest.raises(ChappieBudgetExceeded) as exc_info:
+    with pytest.raises(BudgetCtlBudgetExceeded) as exc_info:
         await enforcer.reserve(BudgetScope.AGENT, "agent-1", 15.0)
 
     assert exc_info.value.limit == 10.0
@@ -144,7 +144,7 @@ async def test_release_restores_full_amount():
     assert status.remaining == 50.0
 
     # Reservation key should be deleted
-    res_key = f"chappie:reservation:{reservation.id}"
+    res_key = f"budgetctl:reservation:{reservation.id}"
     assert not await store.exists(res_key)
 
 
@@ -295,7 +295,7 @@ async def test_multiple_reservations():
     assert status.remaining == 25.0
 
     # Fourth reservation that would exceed budget
-    with pytest.raises(ChappieBudgetExceeded):
+    with pytest.raises(BudgetCtlBudgetExceeded):
         await enforcer.reserve(BudgetScope.AGENT, "agent-m1", 30.0)
 
     # Release one reservation and try again
@@ -333,7 +333,7 @@ async def test_default_budget_when_no_limit_set():
     assert status.remaining == 2.0
 
     # Exceeding the default should fail
-    with pytest.raises(ChappieBudgetExceeded):
+    with pytest.raises(BudgetCtlBudgetExceeded):
         await enforcer.reserve(BudgetScope.AGENT, "agent-d1", 5.0)
 
 

@@ -1,17 +1,17 @@
-"""Custom exception hierarchy for Chappie.
+"""Custom exception hierarchy for BudgetCtl.
 
-All exceptions inherit from ``ChappieError`` so callers can catch the
-entire family with a single ``except ChappieError`` clause.
+All exceptions inherit from ``BudgetCtlError`` so callers can catch the
+entire family with a single ``except BudgetCtlError`` clause.
 """
 
 from __future__ import annotations
 
 
-class ChappieError(Exception):
-    """Base exception for all Chappie errors."""
+class BudgetCtlError(Exception):
+    """Base exception for all BudgetCtl errors."""
 
 
-class ChappieLoopDetected(ChappieError):
+class BudgetCtlLoopDetected(BudgetCtlError):
     """Raised when the loop detector identifies a runaway agent."""
 
     def __init__(
@@ -29,7 +29,7 @@ class ChappieLoopDetected(ChappieError):
         )
 
 
-class ChappieBudgetExceeded(ChappieError):
+class BudgetCtlBudgetExceeded(BudgetCtlError):
     """Raised when an agent has exhausted its spend budget."""
 
     def __init__(
@@ -47,7 +47,7 @@ class ChappieBudgetExceeded(ChappieError):
         )
 
 
-class ChappieCircuitOpen(ChappieError):
+class BudgetCtlCircuitOpen(BudgetCtlError):
     """Raised when the circuit breaker is open and the call is rejected."""
 
     def __init__(

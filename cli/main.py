@@ -11,7 +11,7 @@ Usage:
     budgetctl --format json status
 
 Environment:
-    CHAPPIE_API_URL   Base URL of the Chappie API (default: http://localhost:8787)
+    BUDGETCTL_API_URL   Base URL of the BudgetCtl API (default: http://localhost:8787)
 """
 
 from __future__ import annotations
@@ -69,11 +69,11 @@ def _request(
             response = client.request(method, path, json=json_body)
     except httpx.ConnectError:
         error_console.print(
-            f"[red]Cannot connect to Chappie API at {api_url}[/red]"
+            f"[red]Cannot connect to BudgetCtl API at {api_url}[/red]"
         )
         error_console.print(
-            "[dim]Is the Chappie server running? "
-            "Start it with: uvicorn chappie.api:app --port 8787[/dim]"
+            "[dim]Is the BudgetCtl server running? "
+            "Start it with: uvicorn budgetctl.api:app --port 8787[/dim]"
         )
         sys.exit(1)
     except httpx.TimeoutException:
@@ -182,10 +182,10 @@ def _cb_state_styled(state: str) -> Text:
 @click.group()
 @click.option(
     "--api-url",
-    envvar="CHAPPIE_API_URL",
+    envvar="BUDGETCTL_API_URL",
     default=API_URL_DEFAULT,
     show_default=True,
-    help="Base URL of the Chappie API.",
+    help="Base URL of the BudgetCtl API.",
 )
 @click.option(
     "--format",
@@ -239,7 +239,7 @@ def status(ctx: click.Context) -> None:
 
     panel = Panel(
         "\n".join(lines),
-        title="[bold cyan]Chappie Status[/bold cyan]",
+        title="[bold cyan]BudgetCtl Status[/bold cyan]",
         border_style="cyan",
         padding=(1, 2),
     )

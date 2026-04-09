@@ -123,7 +123,7 @@ Budgets operate at four independent scopes: agent, user, team, global. Most rest
 **How to use it**
 
 ```bash
-pip install chappie
+pip install budgetctl
 ```
 
 ```yaml
@@ -134,7 +134,7 @@ litellm_settings:
 ```
 
 ```bash
-export CHAPPIE_MODE=enforce
+export BUDGETCTL_MODE=enforce
 ```
 
 Pass agent identity via LiteLLM metadata:
@@ -208,7 +208,7 @@ Including Ollama, LM Studio, llama.cpp server, anything behind an OpenAI-compati
 **Setup in two steps**
 
 ```bash
-pip install chappie
+pip install budgetctl
 ```
 
 ```yaml
@@ -221,7 +221,7 @@ litellm_settings:
 Start in observe mode (default) to see what it would catch without blocking anything. Switch to enforce when you are ready:
 
 ```bash
-export CHAPPIE_MODE=enforce
+export BUDGETCTL_MODE=enforce
 ```
 
 **See it work right now**

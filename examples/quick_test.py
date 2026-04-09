@@ -1,11 +1,11 @@
 """
-Quick test - see Chappie's loop detector in action.
+Quick test - see BudgetCtl's loop detector in action.
 No LLM calls, no API key needed. Just run it.
 """
-from chappie.engine.loop_detector import LoopDetector
-from chappie.config import LoopDetectorConfig
+from budgetctl.engine.loop_detector import LoopDetector
+from budgetctl.config import LoopDetectorConfig
 
-print("=== Chappie Loop Detector Demo ===\n")
+print("=== BudgetCtl Loop Detector Demo ===\n")
 print("Strategy A: Hash Dedup (same prompt repeated)\n")
 
 detector = LoopDetector(LoopDetectorConfig(

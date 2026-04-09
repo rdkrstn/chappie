@@ -21,14 +21,14 @@ round-trip).  The window tracks timestamps of recent failures and
 evicts entries older than ``error_window_sec``.
 
 Redis key schema:
-    chappie:cb:{agent_id}          -> HASH  (state, reason, details,
-                                              tripped_at, open_until,
-                                              error_count)
-    chappie:suspended:{agent_id}   -> STRING "1" with TTL = cooldown_sec
-    chappie:cb:agents              -> HASH  (agent_id -> "1")
-                                      Simulated set via HASH because
-                                      the StoreInterface has no native
-                                      set operations.
+    budgetctl:cb:{agent_id}          -> HASH  (state, reason, details,
+                                               tripped_at, open_until,
+                                               error_count)
+    budgetctl:suspended:{agent_id}   -> STRING "1" with TTL = cooldown_sec
+    budgetctl:cb:agents              -> HASH  (agent_id -> "1")
+                                       Simulated set via HASH because
+                                       the StoreInterface has no native
+                                       set operations.
 """
 
 from __future__ import annotations
@@ -39,17 +39,17 @@ import time
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 
-from chappie.config import CircuitBreakerConfig
-from chappie.models import CircuitBreakerInfo, CircuitBreakerState
-from chappie.store import StoreInterface
+from budgetctl.config import CircuitBreakerConfig
+from budgetctl.models import CircuitBreakerInfo, CircuitBreakerState
+from budgetctl.store import StoreInterface
 
-logger = logging.getLogger("chappie.circuit_breaker")
+logger = logging.getLogger("budgetctl.circuit_breaker")
 
 # Key prefixes ---------------------------------------------------------
 
-_CB_PREFIX = "chappie:cb:"
-_SUSPENDED_PREFIX = "chappie:suspended:"
-_AGENTS_KEY = "chappie:cb:agents"
+_CB_PREFIX = "budgetctl:cb:"
+_SUSPENDED_PREFIX = "budgetctl:suspended:"
+_AGENTS_KEY = "budgetctl:cb:agents"
 
 
 def _cb_key(agent_id: str) -> str:
@@ -105,7 +105,7 @@ class CircuitBreaker:
     async def check(self, agent_id: str) -> CircuitBreakerInfo:
         """Return the current circuit breaker state for *agent_id*.
 
-        Fast-path: if the ``chappie:suspended:{agent_id}`` key exists
+        Fast-path: if the ``budgetctl:suspended:{agent_id}`` key exists
         the agent is OPEN and we skip the HASH read entirely.
 
         If the HASH says OPEN but the suspended key has already expired
@@ -153,7 +153,7 @@ class CircuitBreaker:
         Sets:
         - The CB HASH with state metadata.
         - The ``suspended`` key with a TTL equal to ``cooldown_sec``.
-        - Registers the agent in the ``chappie:cb:agents`` set.
+        - Registers the agent in the ``budgetctl:cb:agents`` set.
         """
         now = time.time()
         open_until = now + self._config.cooldown_sec
@@ -266,7 +266,7 @@ class CircuitBreaker:
     async def get_all_states(self) -> dict[str, CircuitBreakerInfo]:
         """Return the CB state for every known agent.
 
-        Uses the ``chappie:cb:agents`` HASH to enumerate agent IDs,
+        Uses the ``budgetctl:cb:agents`` HASH to enumerate agent IDs,
         then calls ``check()`` on each one.
         """
         agents_map = await self._store.hgetall(_AGENTS_KEY)

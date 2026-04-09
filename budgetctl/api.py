@@ -1,17 +1,17 @@
-"""Chappie REST API -- serves data from the shared store to the CLI and dashboard.
+"""BudgetCtl REST API -- serves data from the shared store to the CLI and dashboard.
 
-Reads from the same Redis (or MemoryStore) that the ChappieLogger plugin
+Reads from the same Redis (or MemoryStore) that the BudgetCtlLogger plugin
 writes to.  The two processes share a key schema:
 
-    chappie:cb:{agent_id}          HASH   (state, reason, details, tripped_at,
-                                            open_until, error_count)
-    chappie:suspended:{agent_id}   STRING  "1" with TTL = cooldown_sec
-    chappie:cb:agents              HASH   (agent_id -> "1")
-    chappie:budget:{scope}:{id}    HASH   (spent, limit)
-    chappie:events                 LIST   (JSON-encoded ChappieEvent objects)
+    budgetctl:cb:{agent_id}          HASH   (state, reason, details, tripped_at,
+                                              open_until, error_count)
+    budgetctl:suspended:{agent_id}   STRING  "1" with TTL = cooldown_sec
+    budgetctl:cb:agents              HASH   (agent_id -> "1")
+    budgetctl:budget:{scope}:{id}    HASH   (spent, limit)
+    budgetctl:events                 LIST   (JSON-encoded BudgetCtlEvent objects)
 
 Start with:
-    uvicorn chappie.api:app --port 8787
+    uvicorn budgetctl.api:app --port 8787
 """
 
 from __future__ import annotations
@@ -30,11 +30,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from chappie.config import ChappieConfig
-from chappie.models import CircuitBreakerInfo, CircuitBreakerState
-from chappie.store import StoreInterface
+from budgetctl.config import BudgetCtlConfig
+from budgetctl.models import CircuitBreakerInfo, CircuitBreakerState
+from budgetctl.store import StoreInterface
 
-logger = logging.getLogger("chappie.api")
+logger = logging.getLogger("budgetctl.api")
 
 
 # ---------------------------------------------------------------------------
@@ -42,7 +42,7 @@ logger = logging.getLogger("chappie.api")
 # ---------------------------------------------------------------------------
 
 store: StoreInterface | None = None
-config: ChappieConfig | None = None
+config: BudgetCtlConfig | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -50,11 +50,11 @@ config: ChappieConfig | None = None
 # ---------------------------------------------------------------------------
 
 
-async def _init_store(cfg: ChappieConfig) -> StoreInterface:
+async def _init_store(cfg: BudgetCtlConfig) -> StoreInterface:
     """Create and connect the backing store."""
     if cfg.redis_url:
         try:
-            from chappie.store.redis import RedisStore
+            from budgetctl.store.redis import RedisStore
 
             redis_store = RedisStore(cfg.redis_url)
             await redis_store.connect()
@@ -66,7 +66,7 @@ async def _init_store(cfg: ChappieConfig) -> StoreInterface:
                 exc,
             )
 
-    from chappie.store.memory import MemoryStore
+    from budgetctl.store.memory import MemoryStore
 
     mem = MemoryStore()
     logger.info("API store: MemoryStore (in-memory)")
@@ -77,7 +77,7 @@ async def _init_store(cfg: ChappieConfig) -> StoreInterface:
 async def lifespan(app: FastAPI):
     """Manage store lifecycle via the modern lifespan protocol."""
     global store, config
-    config = ChappieConfig.from_env()
+    config = BudgetCtlConfig.from_env()
     store = await _init_store(config)
     yield
     if store is not None and hasattr(store, "close"):
@@ -89,9 +89,9 @@ async def lifespan(app: FastAPI):
 # ---------------------------------------------------------------------------
 
 app = FastAPI(
-    title="Chappie API",
+    title="BudgetCtl API",
     version="0.1.0",
-    description="REST API for Chappie -- the circuit breaker for AI agent spend.",
+    description="REST API for BudgetCtl -- the circuit breaker for AI agent spend.",
     lifespan=lifespan,
 )
 
@@ -104,12 +104,12 @@ app.add_middleware(
 )
 
 
-# Key prefixes -- must match chappie.engine.circuit_breaker
-_CB_PREFIX = "chappie:cb:"
-_SUSPENDED_PREFIX = "chappie:suspended:"
-_AGENTS_KEY = "chappie:cb:agents"
-_BUDGET_PREFIX = "chappie:budget:"
-_EVENTS_KEY = "chappie:events"
+# Key prefixes -- must match budgetctl.engine.circuit_breaker
+_CB_PREFIX = "budgetctl:cb:"
+_SUSPENDED_PREFIX = "budgetctl:suspended:"
+_AGENTS_KEY = "budgetctl:cb:agents"
+_BUDGET_PREFIX = "budgetctl:budget:"
+_EVENTS_KEY = "budgetctl:events"
 
 
 # ---------------------------------------------------------------------------
@@ -216,9 +216,9 @@ async def _discover_budget_keys(s: StoreInterface) -> list[tuple[str, str]]:
     Since the StoreInterface does not expose SCAN/KEYS, we check the
     agents registry and look for budget keys by convention:
 
-        chappie:budget:agent:{agent_id}
-        chappie:budget:team:{team_id}
-        chappie:budget:global:default
+        budgetctl:budget:agent:{agent_id}
+        budgetctl:budget:team:{team_id}
+        budgetctl:budget:global:default
 
     Also checks for a global budget key.
     """
@@ -541,9 +541,9 @@ async def health() -> dict:
 if __name__ == "__main__":
     import uvicorn
 
-    port = int(os.environ.get("CHAPPIE_API_PORT", "8787"))
+    port = int(os.environ.get("BUDGETCTL_API_PORT", "8787"))
     uvicorn.run(
-        "chappie.api:app",
+        "budgetctl.api:app",
         host="0.0.0.0",
         port=port,
         log_level="info",

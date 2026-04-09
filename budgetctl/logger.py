@@ -1,11 +1,11 @@
-"""LiteLLM custom logger -- the integration point between the proxy and Chappie.
+"""LiteLLM custom logger -- the integration point between the proxy and BudgetCtl.
 
 This file wires the loop detector, circuit breaker, and budget enforcer
 into LiteLLM's ``CustomLogger`` hooks.
 
 Usage in ``litellm_settings`` (proxy config YAML):
     custom_callbacks:
-      - chappie.logger
+      - budgetctl.logger
 
 The module-level ``proxy_handler_instance`` is picked up automatically by
 the LiteLLM proxy at startup.
@@ -19,22 +19,22 @@ from typing import Any
 from fastapi import HTTPException
 from litellm.integrations.custom_logger import CustomLogger
 
-from chappie.config import ChappieConfig
-from chappie.engine.budget_enforcer import (
+from budgetctl.config import BudgetCtlConfig
+from budgetctl.engine.budget_enforcer import (
     BudgetEnforcer,
     BudgetScope,
     estimate_cost,
 )
-from chappie.engine.circuit_breaker import CircuitBreaker, TripReason
-from chappie.engine.loop_detector import LoopDetector
-from chappie.exceptions import ChappieBudgetExceeded
-from chappie.models import CircuitBreakerState, LoopCheckResult
-from chappie.store.memory import MemoryStore
+from budgetctl.engine.circuit_breaker import CircuitBreaker, TripReason
+from budgetctl.engine.loop_detector import LoopDetector
+from budgetctl.exceptions import BudgetCtlBudgetExceeded
+from budgetctl.models import CircuitBreakerState, LoopCheckResult
+from budgetctl.store.memory import MemoryStore
 
-logger = logging.getLogger("chappie.logger")
+logger = logging.getLogger("budgetctl.logger")
 
 
-def _build_store(config: ChappieConfig) -> Any:
+def _build_store(config: BudgetCtlConfig) -> Any:
     """Create the backing store based on configuration.
 
     If ``config.redis_url`` is set, attempt to instantiate a RedisStore.
@@ -43,7 +43,7 @@ def _build_store(config: ChappieConfig) -> Any:
     """
     if config.redis_url:
         try:
-            from chappie.store.redis import RedisStore
+            from budgetctl.store.redis import RedisStore
 
             store = RedisStore(config.redis_url)
             logger.info("Store: RedisStore  url=%s", config.redis_url)
@@ -59,13 +59,13 @@ def _build_store(config: ChappieConfig) -> Any:
     return store
 
 
-class ChappieLogger(CustomLogger):
+class BudgetCtlLogger(CustomLogger):
     """LiteLLM proxy hook that enforces loop detection, circuit
     breaking, and budget enforcement."""
 
     def __init__(self) -> None:
         super().__init__()
-        self.config = ChappieConfig.from_env()
+        self.config = BudgetCtlConfig.from_env()
         self.store = _build_store(self.config)
         self.loop_detector = LoopDetector(self.config.loop_detection)
         self.circuit_breaker = CircuitBreaker(
@@ -79,7 +79,7 @@ class ChappieLogger(CustomLogger):
         self.alert_manager = None
 
         logger.info(
-            "Chappie initialised  mode=%s  store=%s  budget_limit=$%.2f",
+            "BudgetCtl initialised  mode=%s  store=%s  budget_limit=$%.2f",
             self.config.mode,
             type(self.store).__name__,
             self.config.budgets.default_budget,
@@ -129,7 +129,7 @@ class ChappieLogger(CustomLogger):
                 raise HTTPException(
                     status_code=429,
                     detail={
-                        "error": "chappie_circuit_open",
+                        "error": "budgetctl_circuit_open",
                         "agent_id": agent_id,
                         "reason": cb_info.reason,
                         "open_until": (
@@ -138,7 +138,7 @@ class ChappieLogger(CustomLogger):
                             else None
                         ),
                         "message": (
-                            f"Chappie blocked this request: "
+                            f"BudgetCtl blocked this request: "
                             f"circuit breaker is open ({cb_info.reason})"
                         ),
                     },
@@ -177,12 +177,12 @@ class ChappieLogger(CustomLogger):
                 raise HTTPException(
                     status_code=429,
                     detail={
-                        "error": "chappie_loop_detected",
+                        "error": "budgetctl_loop_detected",
                         "agent_id": agent_id,
                         "strategy": result.strategy,
                         "details": result.details,
                         "message": (
-                            f"Chappie blocked this request: "
+                            f"BudgetCtl blocked this request: "
                             f"loop detected via {result.strategy}"
                         ),
                     },
@@ -196,7 +196,7 @@ class ChappieLogger(CustomLogger):
             reservation = await self.budget_enforcer.reserve(
                 BudgetScope.AGENT, agent_id, estimated_cost,
             )
-        except ChappieBudgetExceeded as exc:
+        except BudgetCtlBudgetExceeded as exc:
             logger.warning(
                 "Budget exceeded  agent=%s  spent=%.4f  limit=%.4f  mode=%s",
                 agent_id,
@@ -213,12 +213,12 @@ class ChappieLogger(CustomLogger):
                 raise HTTPException(
                     status_code=429,
                     detail={
-                        "error": "chappie_budget_exceeded",
+                        "error": "budgetctl_budget_exceeded",
                         "agent_id": agent_id,
                         "spent": exc.spent,
                         "limit": exc.limit,
                         "message": (
-                            f"Chappie blocked this request: "
+                            f"BudgetCtl blocked this request: "
                             f"budget exceeded (spent ${exc.spent:.4f} / limit ${exc.limit:.4f})"
                         ),
                     },
@@ -234,7 +234,7 @@ class ChappieLogger(CustomLogger):
 
         # Store reservation in data metadata so success/failure hooks can
         # reconcile or release it.
-        data.setdefault("metadata", {})["_chappie_reservation"] = reservation
+        data.setdefault("metadata", {})["_budgetctl_reservation"] = reservation
 
     # ------------------------------------------------------------------
     # Success hook (runs after a successful LLM response)
@@ -277,7 +277,7 @@ class ChappieLogger(CustomLogger):
         metadata = kwargs.get("litellm_params", {}).get("metadata", {})
         if not isinstance(metadata, dict):
             metadata = {}
-        reservation = metadata.get("_chappie_reservation")
+        reservation = metadata.get("_budgetctl_reservation")
 
         if reservation is not None:
             try:
@@ -352,7 +352,7 @@ class ChappieLogger(CustomLogger):
         metadata = kwargs.get("litellm_params", {}).get("metadata", {})
         if not isinstance(metadata, dict):
             metadata = {}
-        reservation = metadata.get("_chappie_reservation")
+        reservation = metadata.get("_budgetctl_reservation")
 
         if reservation is not None:
             try:
@@ -417,4 +417,4 @@ class ChappieLogger(CustomLogger):
 
 
 # Module-level instance picked up by LiteLLM proxy.
-proxy_handler_instance = ChappieLogger()
+proxy_handler_instance = BudgetCtlLogger()

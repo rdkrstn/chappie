@@ -19,8 +19,8 @@ import time
 
 import pytest
 
-from chappie.config import LoopDetectorConfig
-from chappie.engine.loop_detector import LoopDetector
+from budgetctl.config import LoopDetectorConfig
+from budgetctl.engine.loop_detector import LoopDetector
 
 
 # ---------------------------------------------------------------------------

@@ -1,6 +1,6 @@
-"""Store interface and factory for Chappie's persistence layer.
+"""Store interface and factory for BudgetCtl's persistence layer.
 
-Chappie uses a key-value store abstraction so the engine can run against
+BudgetCtl uses a key-value store abstraction so the engine can run against
 Redis in production or a plain Python dict in tests / local development.
 """
 

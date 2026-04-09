@@ -1,11 +1,11 @@
-"""Shared fixtures for the Chappie test suite."""
+"""Shared fixtures for the BudgetCtl test suite."""
 
 from __future__ import annotations
 
 import pytest
 
-from chappie.config import BudgetConfig, CircuitBreakerConfig, LoopDetectorConfig
-from chappie.store.memory import MemoryStore
+from budgetctl.config import BudgetConfig, CircuitBreakerConfig, LoopDetectorConfig
+from budgetctl.store.memory import MemoryStore
 
 
 # ---------------------------------------------------------------------------

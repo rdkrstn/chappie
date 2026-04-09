@@ -1,4 +1,4 @@
-"""Shared Pydantic models used across Chappie sub-systems."""
+"""Shared Pydantic models used across BudgetCtl sub-systems."""
 
 from __future__ import annotations
 
@@ -95,8 +95,8 @@ class AgentInfo(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class ChappieEvent(BaseModel):
-    """Generic event emitted by Chappie for alerting / logging."""
+class BudgetCtlEvent(BaseModel):
+    """Generic event emitted by BudgetCtl for alerting / logging."""
 
     event_type: str
     agent_id: str

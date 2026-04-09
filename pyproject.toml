@@ -47,7 +47,7 @@ Homepage = "https://github.com/rdkrstn/chappie"
 Issues = "https://github.com/rdkrstn/chappie/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["chappie", "cli"]
+packages = ["budgetctl", "cli"]
 
 [tool.ruff]
 target-version = "py310"

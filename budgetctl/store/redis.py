@@ -11,7 +11,7 @@ from typing import Any
 
 import redis.asyncio as aioredis
 
-from chappie.store import StoreInterface
+from budgetctl.store import StoreInterface
 
 
 class RedisStore(StoreInterface):

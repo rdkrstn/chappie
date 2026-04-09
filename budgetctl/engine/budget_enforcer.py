@@ -26,10 +26,10 @@ Redis key schema
 ----------------
 ::
 
-    chappie:budget:{scope}:{scope_id}:spent     -> STRING  (INCRBYFLOAT)
-    chappie:budget:{scope}:{scope_id}:limit     -> STRING  (budget cap in USD)
-    chappie:reservation:{reservation_id}        -> STRING  (estimated cost, with TTL)
-    chappie:budget:fired:{scope}:{scope_id}:{threshold}  -> STRING  ("1")
+    budgetctl:budget:{scope}:{scope_id}:spent     -> STRING  (INCRBYFLOAT)
+    budgetctl:budget:{scope}:{scope_id}:limit     -> STRING  (budget cap in USD)
+    budgetctl:reservation:{reservation_id}        -> STRING  (estimated cost, with TTL)
+    budgetctl:budget:fired:{scope}:{scope_id}:{threshold}  -> STRING  ("1")
 """
 
 from __future__ import annotations
@@ -38,12 +38,12 @@ import enum
 import logging
 from typing import Any
 
-from chappie.config import BudgetConfig
-from chappie.exceptions import ChappieBudgetExceeded
-from chappie.models import BudgetStatus, Reservation
-from chappie.store import StoreInterface
+from budgetctl.config import BudgetConfig
+from budgetctl.exceptions import BudgetCtlBudgetExceeded
+from budgetctl.models import BudgetStatus, Reservation
+from budgetctl.store import StoreInterface
 
-logger = logging.getLogger("chappie.budget_enforcer")
+logger = logging.getLogger("budgetctl.budget_enforcer")
 
 
 # ---------------------------------------------------------------------------
@@ -64,8 +64,8 @@ class BudgetScope(str, enum.Enum):
 # Key helpers
 # ---------------------------------------------------------------------------
 
-_BUDGET_PREFIX = "chappie:budget"
-_RESERVATION_PREFIX = "chappie:reservation"
+_BUDGET_PREFIX = "budgetctl:budget"
+_RESERVATION_PREFIX = "budgetctl:reservation"
 
 
 def _spent_key(scope: BudgetScope, scope_id: str) -> str:
@@ -204,7 +204,7 @@ class BudgetEnforcer:
            ``spent`` and writes the reservation key with a TTL.
         3. Return a :class:`Reservation` on success.
 
-        Raises :class:`ChappieBudgetExceeded` if the budget cannot
+        Raises :class:`BudgetCtlBudgetExceeded` if the budget cannot
         absorb the estimated cost.
         """
         limit = await self._get_limit(scope, scope_id)
@@ -241,7 +241,7 @@ class BudgetEnforcer:
                 limit,
                 estimated_cost,
             )
-            raise ChappieBudgetExceeded(
+            raise BudgetCtlBudgetExceeded(
                 agent_id=f"{scope.value}:{scope_id}",
                 spent=current_spent,
                 limit=limit,

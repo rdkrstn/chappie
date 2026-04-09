@@ -38,7 +38,7 @@ Most tests use an in-memory store (no Redis needed). If you want to test against
 
 ```bash
 docker run -p 6379:6379 redis:7-alpine
-export CHAPPIE_REDIS_URL=redis://localhost:6379
+export BUDGETCTL_REDIS_URL=redis://localhost:6379
 ```
 
 ---

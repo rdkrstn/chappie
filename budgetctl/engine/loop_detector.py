@@ -1,4 +1,4 @@
-"""Loop detection engine -- Chappie's hero feature.
+"""Loop detection engine -- BudgetCtl's hero feature.
 
 Three independent strategies run on every ``check()`` call.  The first
 positive match wins and is returned immediately.
@@ -29,10 +29,10 @@ import logging
 import time
 from collections import Counter, defaultdict, deque
 
-from chappie.config import LoopDetectorConfig
-from chappie.models import LoopCheckResult
+from budgetctl.config import LoopDetectorConfig
+from budgetctl.models import LoopCheckResult
 
-logger = logging.getLogger("chappie.loop_detector")
+logger = logging.getLogger("budgetctl.loop_detector")
 
 # Minimum calls before the velocity baseline can trigger a flag.
 _VELOCITY_WARMUP_CALLS = 5

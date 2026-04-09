@@ -10,7 +10,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
-from chappie.store import StoreInterface
+from budgetctl.store import StoreInterface
 
 
 class MemoryStore(StoreInterface):
@@ -120,7 +120,7 @@ class MemoryStore(StoreInterface):
 
         3. **Fallback**: returns ``[1]``.
         """
-        # Budget reservation script (Day 3 -- scalar keys)
+        # Budget reservation script -- scalar keys
         if "INCRBYFLOAT" in script and len(keys) >= 2 and len(args) >= 2:
             spent_key = keys[0]
             reservation_key = keys[1]
