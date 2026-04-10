@@ -18,9 +18,9 @@ services:
     ports:
       - "8787:8787"
     environment:
-      - CHAPPIE_REDIS_URL=redis://redis:6379
-      - CHAPPIE_MODE=observe
-      - CHAPPIE_API_PORT=8787
+      - BUDGETCTL_REDIS_URL=redis://redis:6379
+      - BUDGETCTL_MODE=observe
+      - BUDGETCTL_API_PORT=8787
     depends_on:
       redis:
         condition: service_healthy

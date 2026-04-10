@@ -28,7 +28,7 @@ The `-e` flag installs the package in editable mode so your local changes take e
 To verify the install worked:
 
 ```bash
-python -c "import chappie; print(chappie.__version__)"
+python -c "import budgetctl; print(budgetctl.__version__)"
 budgetctl --help
 ```
 
@@ -158,7 +158,7 @@ These are well-scoped, self-contained tasks that do not require deep knowledge o
 
 **What**: Chappie supports Slack and generic webhooks. SMTP email is a common request. Add a new alert channel that sends an email when a threshold is crossed or a circuit breaker trips.
 
-**Where to start**: `chappie/alerts.py`. See how `SlackChannel` is implemented and follow the same pattern for an `SMTPChannel`.
+**Where to start**: `budgetctl/alerts.py`. See how `SlackChannel` is implemented and follow the same pattern for an `SMTPChannel`.
 
 **Skills needed**: Python, `smtplib` or `aiosmtplib`, Pydantic settings
 
@@ -170,7 +170,7 @@ These are well-scoped, self-contained tasks that do not require deep knowledge o
 
 **What**: The REST API (`/api/status`, `/api/budgets`, `/api/events`) already exists. Build a Next.js frontend that displays real-time cost and loop data using the SSE events stream.
 
-**Where to start**: `chappie/api.py` for the existing endpoints, `README.md` for the API reference
+**Where to start**: `budgetctl/api.py` for the existing endpoints, `README.md` for the API reference
 
 **Skills needed**: Next.js, React, SSE/EventSource, Tailwind or similar
 
@@ -182,7 +182,7 @@ These are well-scoped, self-contained tasks that do not require deep knowledge o
 
 **What**: The velocity detector uses a simple EMA baseline. Welford's online algorithm computes a running mean and variance in constant time and constant space. This would let Chappie detect statistically significant deviations rather than a fixed multiplier.
 
-**Where to start**: `chappie/engine/loop_detector.py`, the `VelocityDetector` class
+**Where to start**: `budgetctl/engine/loop_detector.py`, the `VelocityDetector` class
 
 **Skills needed**: Python, statistics (Welford's algorithm or z-score basics)
 
@@ -194,7 +194,7 @@ These are well-scoped, self-contained tasks that do not require deep knowledge o
 
 **What**: Chappie already tags every loop event with the model name. Aggregate this into a per-model benchmark (calls, loops, loop rate, avg cost) accessible via `budgetctl benchmark` and a new API endpoint.
 
-**Where to start**: `chappie/engine/loop_detector.py` for where events are emitted, `cli/main.py` for the CLI pattern, `chappie/api.py` for the API pattern
+**Where to start**: `budgetctl/engine/loop_detector.py` for where events are emitted, `cli/main.py` for the CLI pattern, `budgetctl/api.py` for the API pattern
 
 **Skills needed**: Python, Click, Rich tables, FastAPI
 
@@ -206,7 +206,7 @@ These are well-scoped, self-contained tasks that do not require deep knowledge o
 
 **What**: `budgetctl status` shows a summary. There is no way to drill into a single agent and see its full state in one view: budget, circuit breaker state, recent loops detected, and call history.
 
-**Where to start**: `cli/main.py` for the CLI pattern, `chappie/api.py` for the data to expose
+**Where to start**: `cli/main.py` for the CLI pattern, `budgetctl/api.py` for the data to expose
 
 **Skills needed**: Python, Click, Rich panels/tables
 

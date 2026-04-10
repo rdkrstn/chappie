@@ -19,22 +19,22 @@ Chappie currently supports two alert channels: Slack (incoming webhooks) and gen
 Users configure SMTP credentials in environment variables and Chappie sends an email when a threshold is crossed or a circuit breaker trips.
 
 ```bash
-CHAPPIE_ALERTS__SMTP_HOST=smtp.gmail.com
-CHAPPIE_ALERTS__SMTP_PORT=587
-CHAPPIE_ALERTS__SMTP_USERNAME=alerts@yourorg.com
-CHAPPIE_ALERTS__SMTP_PASSWORD=your-app-password
-CHAPPIE_ALERTS__SMTP_FROM=alerts@yourorg.com
-CHAPPIE_ALERTS__SMTP_TO=on-call@yourorg.com
+BUDGETCTL_ALERTS__SMTP_HOST=smtp.gmail.com
+BUDGETCTL_ALERTS__SMTP_PORT=587
+BUDGETCTL_ALERTS__SMTP_USERNAME=alerts@yourorg.com
+BUDGETCTL_ALERTS__SMTP_PASSWORD=your-app-password
+BUDGETCTL_ALERTS__SMTP_FROM=alerts@yourorg.com
+BUDGETCTL_ALERTS__SMTP_TO=on-call@yourorg.com
 ```
 
 The email body should include: alert level, agent ID, spend data or circuit breaker state, and a timestamp.
 
 ### Implementation Hints
 
-- Look at `chappie/alerts.py`. The `SlackChannel` class is the reference implementation. Follow the same interface.
+- Look at `budgetctl/alerts.py`. The `SlackChannel` class is the reference implementation. Follow the same interface.
 - Add an `SMTPChannel` class that implements `send(alert: AlertEvent)`.
 - Use `smtplib` (stdlib) or `aiosmtplib` for async sending.
-- Add the SMTP fields to `AlertsConfig` in `chappie/config.py` using `pydantic-settings`.
+- Add the SMTP fields to `AlertsConfig` in `budgetctl/config.py` using `pydantic-settings`.
 - Wire the new channel into the channel factory (also in `alerts.py`).
 - Add at least 2 tests to `tests/test_alerts.py` (or create the file if it does not exist): one for a successful send, one for a connection failure that does not crash the process.
 
@@ -96,14 +96,14 @@ Replace the EMA with [Welford's online algorithm](https://en.wikipedia.org/wiki/
 
 ```
 # Example config
-CHAPPIE_LOOP_DETECTION__VELOCITY_ZSCORE_THRESHOLD=3.0   # flag at 3 standard deviations
+BUDGETCTL_LOOP_DETECTION__VELOCITY_ZSCORE_THRESHOLD=3.0   # flag at 3 standard deviations
 ```
 
 A threshold of 3.0 corresponds to a ~0.3% false positive rate under a normal distribution. This is a well-understood, tunable value that teams can reason about more easily than a raw multiplier.
 
 ### Implementation Hints
 
-- The velocity detector lives in `chappie/engine/loop_detector.py`, in the `VelocityDetector` class.
+- The velocity detector lives in `budgetctl/engine/loop_detector.py`, in the `VelocityDetector` class.
 - Welford's algorithm is straightforward: maintain `count`, `mean`, and `M2` (sum of squared deviations). See the Wikipedia pseudocode.
 - Keep the existing EMA path as a fallback while warming up (fewer than 5 samples). The z-score is undefined with no variance data.
 - Add tests for: normal traffic (no flag), genuine spike detection, warm-up window behavior, single-sample edge case.
@@ -149,9 +149,9 @@ The `--format json` flag works here too, consistent with all other `budgetctl` c
 
 ### Implementation Hints
 
-- Look at how `budgetctl budget list` is implemented in `cli/main.py` and the corresponding API endpoint in `chappie/api.py`. Follow the same pattern.
+- Look at how `budgetctl budget list` is implemented in `cli/main.py` and the corresponding API endpoint in `budgetctl/api.py`. Follow the same pattern.
 - Store per-model counters in the same store used for budgets (`RedisStore` or `MemoryStore`). Keys like `model:gpt-4o:calls`, `model:gpt-4o:loops`, `model:gpt-4o:cost` work fine.
-- Increment these counters in `ChappieLogger.post_call_hook()` in `chappie/logger.py`.
+- Increment these counters in `BudgetCtlLogger.post_call_hook()` in `budgetctl/logger.py`.
 - Privacy note: store only model name, call count, loop count, and cost aggregates. No prompt content.
 
 ---
@@ -205,7 +205,7 @@ If the agent does not exist in the store, print a clear message: `No data found 
 ### Implementation Hints
 
 - The data is already available across `GET /api/status`, `GET /api/budgets/{scope}/{id}`, and the circuit breaker state.
-- Add a `GET /api/agents/{agent_id}` endpoint in `chappie/api.py` that assembles all per-agent data into one response.
+- Add a `GET /api/agents/{agent_id}` endpoint in `budgetctl/api.py` that assembles all per-agent data into one response.
 - Add the `agent inspect <agent_id>` subcommand in `cli/main.py`. Use Rich's `Panel` and `Table` for layout, consistent with the existing `budgetctl budget get` output.
 - The `--format json` flag should work here too.
 - Add at least one test covering the case where the agent exists and one where it does not.

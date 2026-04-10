@@ -130,7 +130,7 @@ pip install budgetctl
 # litellm_config.yaml
 litellm_settings:
   callbacks:
-    - chappie.logger
+    - budgetctl.logger
 ```
 
 ```bash
@@ -215,7 +215,7 @@ pip install budgetctl
 # litellm_config.yaml
 litellm_settings:
   callbacks:
-    - chappie.logger
+    - budgetctl.logger
 ```
 
 Start in observe mode (default) to see what it would catch without blocking anything. Switch to enforce when you are ready:

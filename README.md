@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Tests: 81 passing](https://img.shields.io/badge/tests-81%20passing-brightgreen.svg)](#testing)
-[![Status: Day 6 of 7](https://img.shields.io/badge/status-Day%206%20of%207-blue.svg)](#build-progress)
+[![Release: v0.1.0](https://img.shields.io/badge/release-v0.1.0-blue.svg)](#build-progress)
 [![GitHub Stars](https://img.shields.io/github/stars/rdkrstn/chappie?style=social)](https://github.com/rdkrstn/chappie)
 
 LiteLLM gives you budget caps. Chappie gives you behavior detection.
@@ -449,14 +449,14 @@ Chappie exposes a REST API for programmatic access to agent state, budgets, and 
 ### Start the API Server
 
 ```bash
-uvicorn chappie.api:app --host 0.0.0.0 --port 8787
+uvicorn budgetctl.api:app --host 0.0.0.0 --port 8787
 ```
 
 Or use the default port from config:
 
 ```bash
 # Reads BUDGETCTL_API_PORT (default: 8787)
-uvicorn chappie.api:app
+uvicorn budgetctl.api:app
 ```
 
 ### Endpoints
@@ -538,11 +538,11 @@ The image is based on `python:3.12-slim`. It copies the package, installs depend
 FROM python:3.12-slim
 WORKDIR /app
 COPY pyproject.toml README.md LICENSE ./
-COPY chappie/ chappie/
+COPY budgetctl/ budgetctl/
 COPY cli/ cli/
 RUN pip install --no-cache-dir .
 EXPOSE 8787
-CMD ["python", "-m", "uvicorn", "chappie.api:app", "--host", "0.0.0.0", "--port", "8787"]
+CMD ["python", "-m", "uvicorn", "budgetctl.api:app", "--host", "0.0.0.0", "--port", "8787"]
 ```
 
 ## Two Modes
@@ -569,9 +569,29 @@ import litellm
 response = litellm.completion(
     model="gpt-4",
     messages=[{"role": "user", "content": "Hello"}],
-    metadata={"agent_id": "my-research-agent"}
+    metadata={"agent_id": "my-research-agent"},
 )
 ```
+
+### LiteLLM with OpenRouter
+
+LiteLLM routes OpenRouter models when you use the `openrouter/` prefix and set your API key:
+
+```bash
+export OPENROUTER_API_KEY="sk-or-..."
+```
+
+```python
+import litellm
+
+response = litellm.completion(
+    model="openrouter/anthropic/claude-3.5-sonnet",
+    messages=[{"role": "user", "content": "Hello"}],
+    metadata={"agent_id": "my-research-agent"},
+)
+```
+
+In a LiteLLM **proxy** `config.yaml`, list models with the same prefix (for example `openrouter/meta-llama/llama-3.1-8b-instruct`) and keep Chappie on `callbacks` as usual. See the [LiteLLM OpenRouter provider docs](https://docs.litellm.ai/docs/providers/openrouter) for env vars (`OPENROUTER_API_KEY`, optional `OPENROUTER_API_BASE`) and the full model catalog.
 
 ## Configuration
 
@@ -721,9 +741,11 @@ Chappie is being built in public over 7 days.
 
 ## Project Structure
 
+The installable Python package is **`budgetctl`** (PyPI name). The product is branded **Chappie**.
+
 ```
-chappie/
-├── chappie/
+chappie/                         # repository root
+├── budgetctl/
 │   ├── __init__.py              # Package entry point, exports BudgetCtlLogger
 │   ├── config.py                # Pydantic settings (all env var config)
 │   ├── exceptions.py            # ChappieError hierarchy (loop, budget, circuit)
