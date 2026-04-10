@@ -1,4 +1,4 @@
-# Chappie
+# budgetctl
 
 **The circuit breaker for AI agent spend.**
 
@@ -8,9 +8,12 @@
 [![Release: v0.1.0](https://img.shields.io/badge/release-v0.1.0-blue.svg)](#build-progress)
 [![GitHub Stars](https://img.shields.io/github/stars/rdkrstn/chappie?style=social)](https://github.com/rdkrstn/chappie)
 
-LiteLLM gives you budget caps. Chappie gives you behavior detection.
+**Install:** `pip install budgetctl` — Python import: `import budgetctl`.  
+**Source:** this repo is [github.com/rdkrstn/chappie](https://github.com/rdkrstn/chappie) (`chappie/` is the project folder name).
 
-Your agent is stuck in a loop, burning $0.03/call, 200 calls deep. LiteLLM's budget limit will eventually stop it at $50. Chappie stops it at call 4.
+LiteLLM gives you budget caps. **budgetctl** adds behavior detection (loops, cycles, velocity) before the bill adds up.
+
+Your agent is stuck in a loop, burning $0.03/call, 200 calls deep. LiteLLM's budget limit will eventually stop it at $50. **budgetctl** stops it at call 4.
 
 ```
   Call 1: ALLOWED  'What is the weather in Tokyo?'
@@ -29,7 +32,7 @@ Common patterns that drain budgets:
 - **Cycling patterns.** Agent alternates between two actions (summarize, translate, summarize, translate...) without making progress.
 - **Velocity spikes.** Agent suddenly fires 10x more calls per minute than its baseline, usually because it's stuck.
 
-LiteLLM's built-in budget limits work like a spending cap on a credit card. They tell you *after* the damage is done. Chappie watches the agent's behavior in real time and pulls the plug before the bill adds up.
+LiteLLM's built-in budget limits work like a spending cap on a credit card. They tell you *after* the damage is done. **budgetctl** watches the agent's behavior in real time and pulls the plug before the bill adds up.
 
 ## Quick Start
 
@@ -37,7 +40,7 @@ LiteLLM's built-in budget limits work like a spending cap on a credit card. They
 pip install budgetctl
 ```
 
-Add Chappie to your LiteLLM proxy config:
+Add **budgetctl** to your LiteLLM proxy config:
 
 ```yaml
 # litellm_config.yaml
@@ -46,7 +49,7 @@ litellm_settings:
     - budgetctl.logger
 ```
 
-That's it. Chappie starts in **observe mode** by default. It logs detected loops but does not block requests. When you're confident, switch to enforce mode:
+That's it. **budgetctl** starts in **observe mode** by default. It logs detected loops but does not block requests. When you're confident, switch to enforce mode:
 
 ```bash
 export BUDGETCTL_MODE=enforce
@@ -61,7 +64,7 @@ python examples/quick_test.py
 ```
 
 ```
-=== Chappie Loop Detector Demo ===
+=== BudgetCtl Loop Detector Demo ===
 
 Strategy A: Hash Dedup (same prompt repeated)
 
@@ -83,7 +86,7 @@ Strategy B: Cycle Detection (A-B-A-B pattern)
 
 ## How It Works
 
-Chappie plugs into LiteLLM as a `CustomLogger`. It inspects every request *before* it reaches the LLM and every response *after* it comes back.
+**budgetctl** plugs into LiteLLM as a `CustomLogger`. It inspects every request *before* it reaches the LLM and every response *after* it comes back.
 
 Three detection strategies run on every call. The first match wins:
 
@@ -99,7 +102,7 @@ Detection state is kept **in-memory** (no Redis on the hot path). Each agent get
 
 Loop detection tells you something is wrong. The circuit breaker acts on it.
 
-When Chappie detects a loop, it trips the circuit breaker for that specific agent. The agent is blocked from making further LLM calls until a cooldown period expires or an operator manually resets it. Other agents are unaffected.
+When **budgetctl** detects a loop, it trips the circuit breaker for that specific agent. The agent is blocked from making further LLM calls until a cooldown period expires or an operator manually resets it. Other agents are unaffected.
 
 ### The Three States
 
@@ -117,9 +120,9 @@ When Chappie detects a loop, it trips the circuit breaker for that specific agen
 
 | State | What Happens | Duration |
 |-------|-------------|----------|
-| **CLOSED** | Normal operation. All requests pass through. Chappie monitors for loops in the background. | Default state |
+| **CLOSED** | Normal operation. All requests pass through. **budgetctl** monitors for loops in the background. | Default state |
 | **OPEN** | Agent is blocked. Every request returns HTTP 429 immediately, before it reaches the LLM. No tokens burned, no cost incurred. | `cooldown_sec` (default: 300s / 5 min) |
-| **HALF_OPEN** | Cooldown expired. Chappie allows one probe call through to test if the agent has recovered. | 1 call |
+| **HALF_OPEN** | Cooldown expired. **budgetctl** allows one probe call through to test if the agent has recovered. | 1 call |
 
 After the probe call in HALF_OPEN:
 - **Probe succeeds**: circuit closes, agent resumes normal operation.
@@ -161,23 +164,21 @@ When an agent is blocked by an open circuit breaker, the caller receives:
 
 ```json
 {
-  "error": "chappie_circuit_open",
+  "error": "budgetctl_circuit_open",
   "agent_id": "my-research-agent",
-  "state": "open",
   "reason": "Loop detected via hash_dedup: Hash 3f2a... seen 3 times in last 20 calls",
   "open_until": "2025-01-15T14:35:00Z",
-  "cooldown_remaining_sec": 287,
-  "message": "Chappie circuit breaker is OPEN for this agent. Retry after cooldown or request a manual reset."
+  "message": "BudgetCtl blocked this request: circuit breaker is open (...)"
 }
 ```
 
 HTTP status: `429 Too Many Requests`
 
-The `open_until` timestamp and `cooldown_remaining_sec` field tell the caller exactly when the agent will be eligible for a probe call.
+The `reason` field explains why the breaker opened; `open_until` is set when the breaker uses a timed cooldown.
 
 ### Trip Event Log
 
-When the circuit breaker trips, Chappie emits a structured event:
+When the circuit breaker trips, **budgetctl** emits a structured event:
 
 ```json
 {
@@ -210,7 +211,7 @@ This immediately transitions the agent from OPEN to CLOSED, allowing requests th
 
 Loop detection catches behavioral problems. The budget enforcer catches financial ones.
 
-Chappie uses a **reservation-based** enforcement model. Before every LLM call, it estimates the cost, atomically reserves that amount against the budget, and only allows the call if the reservation succeeds. After the call, it reconciles the estimate with the actual cost.
+**budgetctl** uses a **reservation-based** enforcement model. Before every LLM call, it estimates the cost, atomically reserves that amount against the budget, and only allows the call if the reservation succeeds. After the call, it reconciles the estimate with the actual cost.
 
 ### The Reservation Flow
 
@@ -220,7 +221,7 @@ Chappie uses a **reservation-based** enforcement model. Before every LLM call, i
        ▼
   2. RESERVE     Atomically: if (spent + estimate <= limit) then hold
        │
-       ├─ FAIL ──► 429 ChappieBudgetExceeded (no LLM call)
+       ├─ FAIL ──► 429 BudgetCtlBudgetExceeded (no LLM call)
        │
        ▼
   3. EXECUTE     LLM call happens
@@ -250,7 +251,7 @@ All four can be active at the same time. The most restrictive budget wins. An ag
 
 ### Threshold Alerts
 
-Chappie fires alerts at configurable spend thresholds. Each threshold fires exactly once per budget period, so you do not get spammed.
+**budgetctl** fires alerts at configurable spend thresholds. Each threshold fires exactly once per budget period, so you do not get spammed.
 
 | Threshold | Level | What It Means |
 |-----------|-------|---------------|
@@ -265,7 +266,7 @@ When a reservation fails because the budget cannot absorb the estimated cost:
 
 ```json
 {
-  "error": "chappie_budget_exceeded",
+  "error": "budgetctl_budget_exceeded",
   "agent_id": "agent:email-drafter",
   "spent": 24.87,
   "limit": 25.00,
@@ -293,7 +294,7 @@ BUDGETCTL_BUDGETS__ALERT_THRESHOLDS=[0.5, 0.8, 0.9, 1.0]
 
 ## CLI (budgetctl)
 
-Chappie ships with `budgetctl`, a command-line tool for managing budgets, monitoring agents, and inspecting circuit breakers.
+The package includes a **`budgetctl`** command-line tool for managing budgets, monitoring agents, and inspecting circuit breakers.
 
 Installed automatically with `pip install budgetctl`.
 
@@ -304,7 +305,7 @@ budgetctl status
 ```
 
 ```
-╭───── Chappie Status ─────╮
+╭───── budgetctl status ─────╮
 │                           │
 │  Mode:           enforce  │
 │  Store:          redis (connected) │
@@ -380,7 +381,7 @@ budgetctl --format json budget list | jq '.[] | select(.percentage > 80)'
 
 ### Connection
 
-`budgetctl` talks to the Chappie API over HTTP. Set the API URL if it is not running on localhost:
+`budgetctl` talks to the FastAPI server (`budgetctl.api`) over HTTP. Set the API URL if it is not running on localhost:
 
 ```bash
 export BUDGETCTL_API_URL=http://your-server:8787
@@ -388,11 +389,11 @@ export BUDGETCTL_API_URL=http://your-server:8787
 
 ## Alerts
 
-Chappie sends alerts when thresholds are crossed, circuit breakers trip, or loops are detected.
+**budgetctl** sends alerts when thresholds are crossed, circuit breakers trip, or loops are detected.
 
 ### Slack
 
-Point Chappie at a Slack incoming webhook and it posts alerts to the channel of your choice:
+Point the alert config at a Slack incoming webhook and **budgetctl** posts to the channel of your choice:
 
 ```bash
 BUDGETCTL_ALERTS__SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00/B00/xxxx
@@ -400,10 +401,10 @@ BUDGETCTL_ALERTS__SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T00/B00/xxx
 
 ### Generic Webhook
 
-For PagerDuty, Datadog, or your own alerting system, use the generic webhook. Chappie POSTs a JSON payload on every alert:
+For PagerDuty, Datadog, or your own alerting system, use the generic webhook. **budgetctl** POSTs a JSON payload on every alert:
 
 ```bash
-BUDGETCTL_ALERTS__WEBHOOK_URL=https://your-system.com/alerts/chappie
+BUDGETCTL_ALERTS__WEBHOOK_URL=https://your-system.com/alerts/budgetctl
 ```
 
 The payload:
@@ -444,7 +445,7 @@ BUDGETCTL_ALERTS__ENABLED=true              # Kill switch for all alerts
 
 ## API
 
-Chappie exposes a REST API for programmatic access to agent state, budgets, and circuit breakers.
+**budgetctl** exposes a REST API for programmatic access to agent state, budgets, and circuit breakers.
 
 ### Start the API Server
 
@@ -488,7 +489,7 @@ data: {"agent_id": "code-reviewer", "data": {"threshold": 0.8, "level": "warning
 
 ## Docker
 
-Get Chappie running with Redis in one command:
+Run the **budgetctl** API and Redis in one command:
 
 ```bash
 docker compose up
@@ -496,7 +497,7 @@ docker compose up
 
 This starts:
 - **Redis 7** on port 6379 (with persistence and health checks)
-- **Chappie API** on port 8787 (connected to Redis, observe mode by default)
+- **budgetctl API** on port 8787 (connected to Redis, observe mode by default)
 
 ### What the Compose File Does
 
@@ -512,7 +513,7 @@ services:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
 
-  chappie-api:
+  budgetctl-api:
     build: .
     ports:
       - "8787:8787"
@@ -554,7 +555,7 @@ CMD ["python", "-m", "uvicorn", "budgetctl.api:app", "--host", "0.0.0.0", "--por
 
 ## Agent Identification
 
-Chappie identifies agents using a fallback chain:
+**budgetctl** identifies agents using a fallback chain:
 
 1. `metadata.agent_id` (explicit, preferred)
 2. `metadata.session_id` (LangChain / AutoGen convention)
@@ -591,7 +592,7 @@ response = litellm.completion(
 )
 ```
 
-In a LiteLLM **proxy** `config.yaml`, list models with the same prefix (for example `openrouter/meta-llama/llama-3.1-8b-instruct`) and keep Chappie on `callbacks` as usual. See the [LiteLLM OpenRouter provider docs](https://docs.litellm.ai/docs/providers/openrouter) for env vars (`OPENROUTER_API_KEY`, optional `OPENROUTER_API_BASE`) and the full model catalog.
+In a LiteLLM **proxy** `config.yaml`, list models with the same prefix (for example `openrouter/meta-llama/llama-3.1-8b-instruct`) and keep **budgetctl** on `callbacks` as usual. See the [LiteLLM OpenRouter provider docs](https://docs.litellm.ai/docs/providers/openrouter) for env vars (`OPENROUTER_API_KEY`, optional `OPENROUTER_API_BASE`) and the full model catalog.
 
 ## Configuration
 
@@ -690,10 +691,10 @@ Loop detection runs on every single request. Adding a Redis round-trip to the ho
 A simple "check then charge" has a race condition: two concurrent calls could both pass the check, then both charge, pushing the total over the limit. The Lua-script reservation is atomic, so concurrent calls cannot overspend.
 
 **Why observe mode by default?**
-Every team's "normal" agent behavior is different. Observe mode lets you see what Chappie would catch before it starts blocking. Deploy, watch the logs, tune the thresholds, then switch to enforce.
+Every team's "normal" agent behavior is different. Observe mode lets you see what **budgetctl** would catch before it starts blocking. Deploy, watch the logs, tune the thresholds, then switch to enforce.
 
 **Why fail-open when Redis is down?**
-If your state store goes offline, blocking all AI requests is worse than temporarily losing protection. Chappie logs a warning and keeps going.
+If your state store goes offline, blocking all AI requests is worse than temporarily losing protection. **budgetctl** logs a warning and keeps going.
 
 **Why only proxy mode can enforce?**
 LiteLLM's proxy sits between the caller and the LLM, so it can intercept and block. SDK mode (direct `litellm.completion()` calls) does not have that interception point, so it observes only.
@@ -702,7 +703,7 @@ LiteLLM's proxy sits between the caller and the LLM, so it can intercept and blo
 
 LiteLLM has built-in budget limits. They are useful. But they solve a different problem.
 
-| | LiteLLM Budgets | Chappie |
+| | LiteLLM Budgets | budgetctl |
 |---|---|---|
 | **What it watches** | Cumulative spend ($) | Agent behavior (patterns, velocity) + spend |
 | **When it acts** | After you hit the limit | When it detects a loop forming OR before the call if budget is tight |
@@ -710,7 +711,7 @@ LiteLLM has built-in budget limits. They are useful. But they solve a different 
 | **A 200-call loop at $0.03/call** | Stops at your budget cap ($50, $100, whatever) | Stops at call 4 |
 | **Cost enforcement** | Post-call check | Pre-call atomic reservation |
 
-They are complementary. Use LiteLLM budgets as a hard ceiling. Use Chappie as the early warning system that prevents you from ever reaching that ceiling.
+They are complementary. Use LiteLLM budgets as a hard ceiling. Use **budgetctl** as the early warning system that prevents you from ever reaching that ceiling.
 
 ## Testing
 
@@ -727,7 +728,7 @@ pytest
 
 ## Build Progress
 
-Chappie is being built in public over 7 days.
+Initial development was tracked in public over 7 days.
 
 | Day | Feature | Status |
 |-----|---------|--------|
@@ -741,14 +742,12 @@ Chappie is being built in public over 7 days.
 
 ## Project Structure
 
-The installable Python package is **`budgetctl`** (PyPI name). The product is branded **Chappie**.
-
 ```
-chappie/                         # repository root
+chappie/                         # repository root (git clone chappie)
 ├── budgetctl/
 │   ├── __init__.py              # Package entry point, exports BudgetCtlLogger
 │   ├── config.py                # Pydantic settings (all env var config)
-│   ├── exceptions.py            # ChappieError hierarchy (loop, budget, circuit)
+│   ├── exceptions.py            # BudgetCtlError hierarchy (loop, budget, circuit)
 │   ├── logger.py                # BudgetCtlLogger (LiteLLM CustomLogger hook)
 │   ├── models.py                # Shared Pydantic models (events, reservations, status)
 │   ├── engine/
@@ -775,7 +774,7 @@ chappie/                         # repository root
 │   └── workflows/
 │       └── ci.yml               # Lint (ruff) + test (pytest) on every push
 ├── Dockerfile                   # Python 3.12-slim + uvicorn
-├── docker-compose.yml           # Redis + Chappie API
+├── docker-compose.yml           # Redis + budgetctl API
 ├── pyproject.toml               # Package config, dependencies, budgetctl entry point
 ├── .env.example                 # All configuration env vars with defaults
 └── LICENSE                      # MIT
@@ -785,7 +784,7 @@ chappie/                         # repository root
 
 ### Adaptive Insights (v0.2)
 
-Static thresholds are a starting point. An email-drafting agent that makes 5-8 calls per task is different from a code-reviewer that makes 15-25 calls. Chappie will learn each agent's normal behavior and auto-adjust thresholds.
+Static thresholds are a starting point. An email-drafting agent that makes 5-8 calls per task is different from a code-reviewer that makes 15-25 calls. **budgetctl** will learn each agent's normal behavior and auto-adjust thresholds.
 
 ```
 budgetctl insights email-drafter
@@ -799,11 +798,11 @@ budgetctl insights email-drafter
   Recommendation:     Threshold auto-set to 11 (default was 3)
 ```
 
-After 10 sessions, Chappie switches from static defaults to per-agent adaptive thresholds based on the agent's actual P95 behavior. Fewer false positives, tighter detection.
+After 10 sessions, **budgetctl** switches from static defaults to per-agent adaptive thresholds based on the agent's actual P95 behavior. Fewer false positives, tighter detection.
 
 ### Model Loop Leaderboard (v0.2)
 
-Every loop detection is tagged with the model name. Chappie aggregates this into a per-model benchmark. Which LLMs loop the most?
+Every loop detection is tagged with the model name. **budgetctl** will aggregate this into a per-model benchmark. Which LLMs loop the most?
 
 ```
 budgetctl benchmark
